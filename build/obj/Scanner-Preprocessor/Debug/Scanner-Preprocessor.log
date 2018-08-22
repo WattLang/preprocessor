@@ -1,0 +1,8 @@
+﻿  main.c
+d:\dev\wotscript\wotscript-scanner-preproccessor\src\main.c(31): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: see declaration of 'strcpy'
+d:\dev\wotscript\wotscript-scanner-preproccessor\src\main.c(56): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+d:\dev\wotscript\wotscript-scanner-preproccessor\src\main.c(76): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(205): note: see declaration of 'fopen'
+  Scanner-Preprocessor.vcxproj -> D:\Dev\WotScript\WotScript-scanner-preproccessor\build\bin\Scanner-Preprocessor\Debug\Scanner-Preprocessor.exe
