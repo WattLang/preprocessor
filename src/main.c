@@ -65,6 +65,33 @@ int main(int argc, char* argv[]) {
 				printf("Error allocating WotScriptFileContents[%i]!\n", i);
 			}
 			fread(WotScriptFileContents[i], sizeof(char), FileSize, Inputfile);
+
+			size_t PassedQuotes = 0;
+			for (size_t j = 0; j < FileSize; j++) {
+				if (WotScriptFileContents[i][j] == '\"') {
+					PassedQuotes++;
+				}
+			}
+			if (PassedQuotes > 0) {
+				long NewFileSize = FileSize + PassedQuotes;
+				WotScriptFileContents[i] = realloc(WotScriptFileContents[i], sizeof(char) * (NewFileSize + 1));
+				WotScriptFileContents[i][NewFileSize] = '\0';
+				if (WotScriptFileContents[i] == NULL) {
+					printf("Error reallocating WotScriptFileContents[%i]!\n", i);
+				}
+				size_t QuotesAdded = 0;
+				for (size_t j = 0; j < FileSize; j++) {
+					if (WotScriptFileContents[i][j] == '\"') {
+						if (memmove(WotScriptFileContents[i] + j + sizeof(char), WotScriptFileContents[i] + j, NewFileSize - (j + sizeof(char))) == NULL) {
+							printf("Error during memmove to add quotations for WotScriptFileContents[%i]!\n", i);
+						}
+						WotScriptFileContents[i][j] = '\\';
+						QuotesAdded++;
+						j++;
+					}
+				}
+			}
+
 			fclose(Inputfile);
 		}
 		else {
