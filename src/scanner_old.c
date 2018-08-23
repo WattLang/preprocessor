@@ -3,25 +3,33 @@
 #include <string.h>
 
 #define OUTPUT_JSON 0
+#define READ_WS_ONLY 0 //Only take in files with the .ws extension
 
 int main(int argc, char* argv[]) {
 
     char WotScriptFileExtension[4] = ".ws";
     char** WotScriptFiles = NULL;
     int FileCount = 0;
+#if READ_WS_ONLY
     int FileCounter = 0;
+#endif
     if(argc > 0) {
+#if READ_WS_ONLY
         for(int i = 0; i < argc; i++) {
             if(strstr(argv[i], WotScriptFileExtension) != NULL) {
                 FileCount++;
             }
         }
+#else
+		FileCount = argc - 1;
+#endif
         if(FileCount > 0) {
             WotScriptFiles = malloc(sizeof(char*) * FileCount);
 			if (WotScriptFiles == NULL) {
 				printf("Error allocating WotScriptFiles!\n");
 				return -1;
 			}
+#if READ_WS_ONLY
             for(int i = 0; i < argc; i++) {
                 if(strstr(argv[i], WotScriptFileExtension)) {
                     WotScriptFiles[FileCounter] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
@@ -33,6 +41,16 @@ int main(int argc, char* argv[]) {
                     FileCounter++;
                 }
             }
+#else
+			for (int i = 1; i < argc; i++) {
+				WotScriptFiles[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
+				if (WotScriptFiles[i] == NULL) {
+					printf("Error allocating WotScriptFiles[%i]!\n", i);
+					return -1;
+				}
+				strcpy(WotScriptFiles[i], argv[i]);
+			}
+#endif
         }
         else {
 			printf("Error, no WotScript files!");
