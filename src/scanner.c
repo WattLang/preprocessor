@@ -8,7 +8,7 @@ int GetFileNames  (int argc, const char** argv, char*** Files, size_t* FileCount
 int ReadFiles     (size_t FileCount, const char** Files,       char*** FileContents, size_t** FileSizes);
 int Output        (size_t FileCount, const char** Files, const char** FileContents);
 int Preprocess    (size_t FileCount, const char** Processees, const size_t* ProcesseesLengths,  char*** ProcessedOutputContents, size_t** ProcessedOutputLengths);
-int FormateForJSON(size_t FileCount, const char** Files, char*** FileContents, size_t** FileSizes);
+int FormatForJSON(size_t FileCount, const char** Files, char*** FileContents, size_t** FileSizes);
 
 void* memshift(void* src, size_t byteoffset, size_t size, int direction) {
 	if (direction > 0) {
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 	char** WotScriptFiles = NULL;
 	size_t FileCount = 0;
 
-	if (GetFileNames(argc, argv, &WotScriptFiles, &FileCount) != 0) {
+	if (GetFileNames(argc, (const char**)argv, &WotScriptFiles, &FileCount) != 0) {
 		fprintf( stderr, "Error reading file names!\n");
 		return 1;
 	}
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 	char** WotScriptFileContents = NULL;
 	size_t* WotScriptFileLengths = NULL;
 
-	if (ReadFiles(FileCount, WotScriptFiles, &WotScriptFileContents, &WotScriptFileLengths) != 0) {
+	if (ReadFiles(FileCount, (const char**)WotScriptFiles, &WotScriptFileContents, &WotScriptFileLengths) != 0) {
 		fprintf( stderr, "Error reading files!\n");
 		return 2;
 	}
@@ -44,17 +44,17 @@ int main(int argc, char* argv[]) {
 	char**  WotScriptProcessedContents = NULL;
 	size_t* WotScriptProcessedLengths  = NULL;
 
-	if (Preprocess(FileCount, WotScriptFileContents, WotScriptFileLengths, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
+	if (Preprocess(FileCount, (const char**)WotScriptFileContents, WotScriptFileLengths, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
 		fprintf( stderr, "Error preprocessing!");
 		return 4;
 	}
 
-	if (FormateForJSON(FileCount, WotScriptFiles, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
+	if (FormatForJSON(FileCount, (const char**)WotScriptFiles, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
 		fprintf(stderr, "Error formating into JSON!\n");
 		return 2;
 	}
 
-	if (Output(FileCount, WotScriptFiles, WotScriptProcessedContents) != 0) {
+	if (Output(FileCount, (const char**)WotScriptFiles, (const char**)WotScriptProcessedContents) != 0) {
 		fprintf( stderr, "Error outputing scanner results!");
 		return 3;
 	}
@@ -399,7 +399,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 	MacrosPassed = 0;
 	for (size_t i = 0; i < FileCount; i++) {
 		char* CurrentDefinition  = (*ProcessedOutputContents)[i];
-		const char* EndMacroDefinition = (*ProcessedOutputContents)[i];
+		char* EndMacroDefinition = (*ProcessedOutputContents)[i];
 		while (MacrosPassed < MacroCount) {
 			CurrentDefinition = strstr(CurrentDefinition, MacroDefinitionToken);
 			if (CurrentDefinition == NULL) {
@@ -414,6 +414,10 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 				EndMacroDefinition++;
 				if (memset(CurrentDefinition, ' ', (size_t)(EndMacroDefinition - CurrentDefinition)) == NULL) {
 					fprintf(stderr, "Error clearing the definition for MacroNames[%uz]!\n", MacrosPassed);
+					return 1;
+				}
+				if(memshift(EndMacroDefinition, (size_t)(EndMacroDefinition - CurrentDefinition), (size_t)(((*ProcessedOutputContents[i]) + (*ProcessedOutputLengths[i])) - EndMacroDefinition), -1) == NULL) {
+					fprintf( stderr, "Error shifting Processed contents!\n");
 					return 1;
 				}
 				MacrosPassed++;
@@ -484,11 +488,20 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 		}
 	}
 
+	// Free all pointers
+	for (size_t i = 0; i < MacroCount; i++) {
+		free(MacroNames[i]);
+		free(MacroDefinitions[i]);
+	}
+	free(MacroNameLengths);
+	free(MacroDefinitionLengths);
+	free(MacroOccurences);
+
 
 	return 0;
 }
 
-int FormateForJSON(size_t FileCount, const char** Files, char*** FileContents, size_t** FileSizes) {
+int FormatForJSON(size_t FileCount, const char** Files, char*** FileContents, size_t** FileSizes) {
 	// Reformats special characters ( Ones that require a '\' to be used ) into ascii characters for JSON output
 	for (size_t i = 0; i < FileCount; i++) {
 
