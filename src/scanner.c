@@ -210,7 +210,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 		return 1;
 	}
 
-	char    MacroDefinitionToken[] = "#define";
+	char    MacroDefinitionToken[] = "$define";
 	char**  MacroNames             = NULL;
 	char**  MacroDefinitions       = NULL;
 	size_t* MacroDefinitionLengths = NULL;
