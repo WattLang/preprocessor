@@ -4,11 +4,17 @@
 
 #define OUTPUT_JSON 1
 
+#if defined(BIT64) 
+	#define SIZE_PRINT "%zu"
+#else
+	#define SIZE_PRINT "%u"
+#endif
+
 int GetFileNames  (int argc, const char** argv, char*** Files, size_t* FileCount);
 int ReadFiles     (size_t FileCount, const char** Files,       char*** FileContents, size_t** FileSizes);
 int Output        (size_t FileCount, const char** Files, const char** FileContents);
 int Preprocess    (size_t FileCount, const char** Processees, const size_t* ProcesseesLengths,  char*** ProcessedOutputContents, size_t** ProcessedOutputLengths);
-int FormatForJSON(size_t FileCount, const char** Files, char*** FileContents, size_t** FileSizes);
+int FormatForJSON (size_t FileCount, const char** Files, char*** FileContents, size_t** FileSizes);
 
 void* memshift(void* src, size_t byteoffset, size_t size, int direction) {
 	if (direction > 0) {
@@ -28,7 +34,7 @@ int main(int argc, char* argv[]) {
 	char** WotScriptFiles = NULL;
 	size_t FileCount = 0;
 
-	if (GetFileNames(argc, (const char**)argv, &WotScriptFiles, &FileCount) != 0) {
+	if (GetFileNames(argc, argv, &WotScriptFiles, &FileCount) != 0) {
 		fprintf( stderr, "Error reading file names!\n");
 		return 1;
 	}
@@ -36,7 +42,7 @@ int main(int argc, char* argv[]) {
 	char** WotScriptFileContents = NULL;
 	size_t* WotScriptFileLengths = NULL;
 
-	if (ReadFiles(FileCount, (const char**)WotScriptFiles, &WotScriptFileContents, &WotScriptFileLengths) != 0) {
+	if (ReadFiles(FileCount, WotScriptFiles, &WotScriptFileContents, &WotScriptFileLengths) != 0) {
 		fprintf( stderr, "Error reading files!\n");
 		return 2;
 	}
@@ -44,19 +50,23 @@ int main(int argc, char* argv[]) {
 	char**  WotScriptProcessedContents = NULL;
 	size_t* WotScriptProcessedLengths  = NULL;
 
-	if (Preprocess(FileCount, (const char**)WotScriptFileContents, WotScriptFileLengths, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
+	if (Preprocess(FileCount, WotScriptFileContents, WotScriptFileLengths, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
 		fprintf( stderr, "Error preprocessing!");
+		return 3;
+	}
+
+#if OUTPUT_JSON
+
+	if (FormatForJSON(FileCount, WotScriptFiles, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
+		fprintf(stderr, "Error formating into JSON!\n");
 		return 4;
 	}
 
-	if (FormatForJSON(FileCount, (const char**)WotScriptFiles, &WotScriptProcessedContents, &WotScriptProcessedLengths) != 0) {
-		fprintf(stderr, "Error formating into JSON!\n");
-		return 2;
-	}
+#endif
 
-	if (Output(FileCount, (const char**)WotScriptFiles, (const char**)WotScriptProcessedContents) != 0) {
+	if (Output(FileCount, WotScriptFiles, WotScriptProcessedContents) != 0) {
 		fprintf( stderr, "Error outputing scanner results!");
-		return 3;
+		return 4;
 	}
 
 
@@ -88,7 +98,7 @@ int GetFileNames(int argc, const char** argv, char*** Files, size_t* FileCount) 
 		for (size_t i = 0; i < *FileCount; i++) {
 			(*Files)[i] = malloc(strlen(argv[i + 1]) + 1);
 			if ((*Files)[i] == NULL) {
-				fprintf( stderr, "Error allocating File[%uz]\n", i);
+				fprintf( stderr, "Error allocating File["SIZE_PRINT"]\n", i);
 				return 1;
 			}
 			strcpy((*Files)[i], argv[i + 1]);
@@ -127,7 +137,7 @@ int ReadFiles(size_t FileCount, const char** Files, char*** FileContents, size_t
 		//Read files
 		(*FileContents)[i] = malloc((*FileSizes)[i] + 1);
 		if ((*FileContents)[i] == NULL) {
-			fprintf( stderr, "Error allocating FileContents[%uz]!\n", i);
+			fprintf( stderr, "Error allocating FileContents["SIZE_PRINT"]!\n", i);
 			return 1;
 		}
 		memset((*FileContents)[i], 0, (*FileSizes)[i] + 1);
@@ -246,7 +256,8 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 		return 1;
 	}
 
-	memset(MacroOccurences, 0, sizeof(size_t) * MacroCount);
+	memset(MacroOccurences,        0, sizeof(size_t) * MacroCount);
+	memset(MacroDefinitionLengths, 0, sizeof(size_t) * MacroCount);
 
 	// Get macro name lengths
 	size_t MacrosPassed = 0;
@@ -290,7 +301,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 				}
 				CurrentDefinition++;
 				EndLine = strstr(CurrentDefinition, "\n");
-				MacroDefinitionLengths[MacrosPassed] = EndLine - CurrentDefinition;
+				MacroDefinitionLengths[MacrosPassed] = (size_t)(((size_t)EndLine) - ((size_t)CurrentDefinition));
 				MacrosPassed++;
 			}
 		}
@@ -300,7 +311,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 	for (size_t i = 0; i < MacroCount; i++) {
 		MacroNames[i] = malloc(MacroNameLengths[i] + 3);
 		if (MacroNames[i] == NULL) {
-			fprintf(stderr, "Error allocating MacroNames[%uz]!\n", i);
+			fprintf(stderr, "Error allocating MacroNames["SIZE_PRINT"]!\n", i);
 			return 1;
 		}
 		memset(MacroNames[i], 0, MacroNameLengths[i] + 3);
@@ -313,7 +324,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 	for (size_t i = 0; i < MacroCount; i++) {
 		MacroDefinitions[i] = malloc(MacroDefinitionLengths[i] + 2);
 		if (MacroDefinitions[i] == NULL) {
-			fprintf( stderr, "Error allocating MacroDefinitions[%uz]!\n", i);
+			fprintf( stderr, "Error allocating MacroDefinitions["SIZE_PRINT"]!\n", i);
 			return 1;
 		}
 		memset(MacroDefinitions[i], 0, MacroDefinitionLengths[i] + 3);
@@ -340,7 +351,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 					return 1;
 				}
 				if (memcpy(MacroNames[MacrosPassed] + 1, CurrentDefinition, (size_t)(EndMacroName - CurrentDefinition)) == NULL) {
-					fprintf( stderr, "Error copying CurrentDefinition into MacroNames[%uz]!\n", MacrosPassed);
+					fprintf( stderr, "Error copying CurrentDefinition into MacroNames["SIZE_PRINT"]!\n", MacrosPassed);
 					return 1;
 				}
 				MacrosPassed++;
@@ -372,7 +383,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 				}
 				CurrentDefinition++;
 				if (memcpy(MacroDefinitions[MacrosPassed] + 1, CurrentDefinition, (size_t)(EndMacroDefinition - CurrentDefinition)) == NULL) {
-					fprintf(stderr, "Error copying CurrentDefinition into MacroNames[%uz]!\n", MacrosPassed);
+					fprintf(stderr, "Error copying CurrentDefinition into MacroNames["SIZE_PRINT"]!\n", MacrosPassed);
 					return 1;
 				}
 				MacrosPassed++;
@@ -385,11 +396,11 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 		for (size_t j = 0; j < MacroCount; j++) {
 			(*ProcessedOutputContents)[i] = malloc(ProcesseesLengths[i]);
 			if ((*ProcessedOutputContents)[i] == NULL) {
-				fprintf(stderr, "Error failed to allocate (*ProcessedOutputContents)[%uz] with %uz bytes!\n", i, ProcesseesLengths[i]);
+				fprintf(stderr, "Error failed to allocate (*ProcessedOutputContents)["SIZE_PRINT"] with "SIZE_PRINT" bytes!\n", i, ProcesseesLengths[i]);
 				return 1;
 			}
 			if (memcpy((*ProcessedOutputContents)[i], Processees[i], ProcesseesLengths[i]) == NULL) {
-				fprintf(stderr, "Error copying Processees[%uz] into (*ProcessedOutputContents)[%uz]!\n", i, i);
+				fprintf(stderr, "Error copying Processees["SIZE_PRINT"] into (*ProcessedOutputContents)["SIZE_PRINT"]!\n", i, i);
 				return 1;
 			}
 		}
@@ -399,7 +410,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 	MacrosPassed = 0;
 	for (size_t i = 0; i < FileCount; i++) {
 		char* CurrentDefinition  = (*ProcessedOutputContents)[i];
-		char* EndMacroDefinition = (*ProcessedOutputContents)[i];
+		const char* EndMacroDefinition = (*ProcessedOutputContents)[i];
 		while (MacrosPassed < MacroCount) {
 			CurrentDefinition = strstr(CurrentDefinition, MacroDefinitionToken);
 			if (CurrentDefinition == NULL) {
@@ -413,11 +424,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 				}
 				EndMacroDefinition++;
 				if (memset(CurrentDefinition, ' ', (size_t)(EndMacroDefinition - CurrentDefinition)) == NULL) {
-					fprintf(stderr, "Error clearing the definition for MacroNames[%uz]!\n", MacrosPassed);
-					return 1;
-				}
-				if(memshift(EndMacroDefinition, (size_t)(EndMacroDefinition - CurrentDefinition), (size_t)(((*ProcessedOutputContents[i]) + (*ProcessedOutputLengths[i])) - EndMacroDefinition), -1) == NULL) {
-					fprintf( stderr, "Error shifting Processed contents!\n");
+					fprintf(stderr, "Error clearing the definition for MacroNames["SIZE_PRINT"]!\n", MacrosPassed);
 					return 1;
 				}
 				MacrosPassed++;
@@ -454,7 +461,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 		for (size_t j = 0; j < MacroCount; j++) {
 			(*ProcessedOutputContents)[i] = realloc((*ProcessedOutputContents)[i], (*ProcessedOutputLengths)[i]);
 			if ((*ProcessedOutputContents)[i] == NULL) {
-				fprintf( stderr, "Error failed to reallocate (*ProcessedOutputContents)[%uz] with %uz bytes!\n", i, (*ProcessedOutputLengths)[i]);
+				fprintf( stderr, "Error failed to reallocate (*ProcessedOutputContents)["SIZE_PRINT"] with "SIZE_PRINT" bytes!\n", i, (*ProcessedOutputLengths)[i]);
 				return 1;
 			}
 		}
@@ -463,6 +470,7 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 	// Apply each macro
 	size_t MacrosApplied = 0;
 	for (size_t i = 0; i < FileCount; i++) {
+		size_t CurrentProcessedSize = (ProcesseesLengths[i]);
 		char* CurrentUsedMacro = (*ProcessedOutputContents)[i];
 		while (MacrosApplied < MacroCount) {
 			CurrentUsedMacro = strstr(CurrentUsedMacro, MacroNames[MacrosApplied]);
@@ -471,14 +479,16 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 				break;
 			}
 			else {
-				if (memshift(CurrentUsedMacro, MacroDefinitionLengths[MacrosApplied] - MacroNameLengths[MacrosApplied], (*ProcessedOutputLengths)[i] - (((size_t)CurrentUsedMacro - (size_t)(*ProcessedOutputContents)[i]) + 1), 1) == NULL) {
-					fprintf( stderr, "Failed to shift ProcessedOutputContents[%uz] by %uz bytes", i, MacroDefinitionLengths[MacrosApplied]);
+				fprintf(stdout, SIZE_PRINT, (*ProcessedOutputLengths)[i] - (((size_t)CurrentUsedMacro - (size_t)(*ProcessedOutputContents)[i])));
+				if (memshift(CurrentUsedMacro, MacroDefinitionLengths[MacrosApplied] - MacroNameLengths[MacrosApplied], CurrentProcessedSize - (((size_t)CurrentUsedMacro - (size_t)(*ProcessedOutputContents)[i])), 1) == NULL) {
+					fprintf( stderr, "Failed to shift ProcessedOutputContents["SIZE_PRINT"] by "SIZE_PRINT" bytes", i, MacroDefinitionLengths[MacrosApplied]);
 					return 1;
 				}
 				if (memcpy(CurrentUsedMacro, MacroDefinitions[MacrosApplied], MacroDefinitionLengths[MacrosApplied]) == NULL) {
 					fprintf( stderr, "Failed to copy \"%s\" into CurrentUsedMacro", MacroDefinitions[MacrosApplied]);
 					return 1;
 				}
+				CurrentProcessedSize += MacroDefinitionLengths[MacrosApplied] - MacroNameLengths[MacrosApplied];
 				CurrentUsedMacro = strstr(CurrentUsedMacro, "\n");
 				if (CurrentUsedMacro == NULL) {
 					MacrosApplied++;
@@ -487,15 +497,6 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 			}
 		}
 	}
-
-	// Free all pointers
-	for (size_t i = 0; i < MacroCount; i++) {
-		free(MacroNames[i]);
-		free(MacroDefinitions[i]);
-	}
-	free(MacroNameLengths);
-	free(MacroDefinitionLengths);
-	free(MacroOccurences);
 
 
 	return 0;
@@ -528,7 +529,7 @@ int FormatForJSON(size_t FileCount, const char** Files, char*** FileContents, si
 				switch ((*FileContents)[i][j]) {
 				case '\n': {
 					if (memshift((*FileContents)[i] + j, 1, (*FileSizes)[i] - (j + 1), 1) == NULL) {
-						fprintf(stderr, "Error during memmove to add newline for FileContents[%uz][%uz]\n", i, j);
+						fprintf(stderr, "Error during memmove to add newline for FileContents["SIZE_PRINT"]["SIZE_PRINT"]\n", i, j);
 						return 1;
 					}
 					(*FileContents)[i][j] = '\\';
@@ -539,7 +540,7 @@ int FormatForJSON(size_t FileCount, const char** Files, char*** FileContents, si
 				}
 				case '\"': {
 					if (memshift((*FileContents)[i] + j, 1, (*FileSizes)[i] - (j + 1), 1) == NULL) {
-						fprintf(stderr, "Error during memmove to add quotations for FileContents[%uz][%uz]\n", i, j);
+						fprintf(stderr, "Error during memmove to add quotations for FileContents["SIZE_PRINT"]["SIZE_PRINT"]\n", i, j);
 						return 1;
 					}
 					(*FileContents)[i][j] = '\\';
