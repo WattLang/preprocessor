@@ -58,11 +58,10 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
     if(argc > 1) {
         WotScriptFiles.resize(argc - 1);
         for(size_t i = 1; i < argc; i++) {
-            WotScriptFiles[i].first.resize(std::strlen(argv[i]));
-            memcpy(&WotScriptFiles[i].first[0], argv[i], WotScriptFiles[i].first.size());
-            std::vector<char> Data = ReadFile(WotScriptFiles[i].first);
-            WotScriptFiles[i].second = std::string(Data.begin(), Data.end());
-            std::cout << WotScriptFiles[i].first << "      :      " << WotScriptFiles[i].second << std::endl;
+            WotScriptFiles[i - 1].first = argv[i];
+            std::vector<char> Data = ReadFile(WotScriptFiles[i - 1].first);
+            WotScriptFiles[i - 1].second = std::string(Data.begin(), Data.end());
+            std::cout << WotScriptFiles[i - 1].first << "      :      " << WotScriptFiles[i - 1].second << std::endl;
         }
         return true;
     }
