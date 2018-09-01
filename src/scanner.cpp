@@ -21,51 +21,39 @@ public:
     IMacro() {};
     virtual ~IMacro() {}
 
-    virtual bool MacroValue(const std::string& Value) = 0;
-    virtual bool Proccess(std::string& Data, std::ostream& ErrorOutputStream) = 0;
+    virtual bool Proccess(const std::vector<MacroInformation>& Macros, std::string& Data, std::ostream& ErrorOutputStream) = 0;
 };
 
-class Definer : IMacro {
+std::vector<std::pair<std::string, std::string>>           WotScriptFiles;  // Name then contents
+std::vector<std::string>                                   ModuleNames;     // Names of the modules
+std::unordered_map<std::string, std::shared_ptr<IMacro>>   MacroModules;    // The key is the macro, and then a pointer to the module
 
-    virtual bool MacroValue(const std::string& Value) override {
-        return false;
-    }
-    virtual bool Proccess(std::string& Data, std::ostream& ErrorOutputStream) override {
-        return false;
-    }
-
-};
-
-std::unordered_map<std::string, std::shared_ptr<IMacro>> Macros;
-
-bool GetFileNames(int argc, char** argv, std::vector<std::pair<std::string, std::string>>& Output, std::ostream& ErrorOutputStream);
-bool Preprocess(std::vector<std::pair<std::string, std::string>>& Output, std::ostream& ErrorOutputStream);
+bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
+bool Preprocess();
 
 int main(int argc, char* argv[]) {
 
-    std::ostream& ErrorOutputStream = std::cerr;
-    std::vector<std::pair<std::string, std::string>> WotScriptFiles;
-
-    if(!GetFileNames(argc, argv, WotScriptFiles, ErrorOutputStream)) {
-        ErrorOutputStream << "Fail to get and read files!\n";
-        return 1;
+    if(!GetFiles(argc, argv, std::cerr)) {
+        std::cerr << "Failed to get wotscript files!\n";
+        return 1; 
     }
 
+    return 0;
 }
 
-bool GetFileNames(int argc, char** argv, std::vector<std::pair<std::string, std::string>>& Output, std::ostream& ErrorOutputStream) {
+bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
 
     if(argc > 1) {
-        Output.resize(argc - 1);
+        WotScriptFiles.resize(argc - 1);
         std::ifstream File;
         for(size_t i = 0; i < (argc - 1); i++) {
-            Output[i].first = argv[i];
+            WotScriptFiles[i].first = argv[i];
             File.open(argv[i]);
             if(!File.is_open()) {
                 ErrorOutputStream << "Error Opening \"" << argv[i] << "\"\n";
                 return false; 
             }
-            File >> Output[i].second;
+            File >> WotScriptFiles[i].second;
             File.close();
         }
     }
@@ -74,35 +62,39 @@ bool GetFileNames(int argc, char** argv, std::vector<std::pair<std::string, std:
         return false;
     }
 
-    return
- true;
+    return true;
 }
 
-bool Preprocess(std::vector<std::pair<std::string, std::string>>& Output, std::ostream& ErrorOutputStream) {
-    std::unordered_map<std::string, std::vector<MacroInformation>> Macros;
+bool Preprocess() {
 
-    std::string WorkingString;
-    size_t LastIndex = 0;
-    for(auto& Data : Output) {
-        size_t MacroDefinition = Data.second.find(MACRO_IDENTIFIER);
-        LastIndex += MacroDefinition;
-        if(MacroDefinition == Data.second.size() - 1) {
-            continue;
-        }
-        else {
-            WorkingString = Data.second.substr(MacroDefinition, Data.second.size());
-            size_t MacroStart = WorkingString.find(MACRO_START);
-            size_t MacroEnd   = WorkingString.find(MACRO_END);
+    for(auto& File : WotScriptFiles) {
+
+        std::unordered_map<std::string, std::vector<MacroInformation>> Macros;
+        std::string& Content = File.second;
+        for(size_t i = 0; i < Content.size();) {
+
+            i = Content.find(MACRO_IDENTIFIER, i);
+            i++;
+
+            if(i == std::string::npos) {
+                continue;
+            }
+
+            size_t MacroStart  = Content.find(MACRO_START, i);
+            size_t MacroEnd    = Content.find(MACRO_END, MacroStart);
             size_t MacroLength = MacroEnd - MacroStart;
 
-            Macros[WorkingString.substr(0, MacroStart)].emplace_back(
-                WorkingString.substr(0, MacroStart), 
-                WorkingString.substr(MacroStart, MacroLength),
-                LastIndex
+            Macros[Content.substr(i, MacroStart - i)].emplace_back(
+
+                Content.substr(i, MacroStart - i),
+                Content.substr(MacroStart, MacroLength),
+                i
+
             );
 
         }
+
     }
 
-    return true;
+    return false;
 }
