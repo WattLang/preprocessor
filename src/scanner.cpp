@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <cstring>
 
 #define MACRO_IDENTIFIER "@"
 #define MACRO_START "["
@@ -30,12 +31,23 @@ std::unordered_map<std::string, std::shared_ptr<IMacro>>   MacroModules;    // T
 
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
 bool Preprocess();
+std::vector<char> ReadFile(const std::string& Filename);
 
 int main(int argc, char* argv[]) {
 
     if(!GetFiles(argc, argv, std::cerr)) {
         std::cerr << "Failed to get wotscript files!\n";
         return 1; 
+    }
+
+
+    for(size_t i = 0; i < WotScriptFiles.size(); i++) {
+        std::cout << WotScriptFiles[i].first << "      :      " << WotScriptFiles[i].second << std::endl;
+    }
+
+    if(!Preprocess()) {
+        std::cerr << "Failed to preprocess!\n";
+        return 2;
     }
 
     return 0;
@@ -45,17 +57,14 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
 
     if(argc > 1) {
         WotScriptFiles.resize(argc - 1);
-        std::ifstream File;
-        for(size_t i = 0; i < (argc - 1); i++) {
-            WotScriptFiles[i].first = argv[i];
-            File.open(argv[i]);
-            if(!File.is_open()) {
-                ErrorOutputStream << "Error Opening \"" << argv[i] << "\"\n";
-                return false; 
-            }
-            File >> WotScriptFiles[i].second;
-            File.close();
+        for(size_t i = 1; i < argc; i++) {
+            WotScriptFiles[i].first.resize(std::strlen(argv[i]));
+            memcpy(&WotScriptFiles[i].first[0], argv[i], WotScriptFiles[i].first.size());
+            std::vector<char> Data = ReadFile(WotScriptFiles[i].first);
+            WotScriptFiles[i].second = std::string(Data.begin(), Data.end());
+            std::cout << WotScriptFiles[i].first << "      :      " << WotScriptFiles[i].second << std::endl;
         }
+        return true;
     }
     else {
         ErrorOutputStream << "There were no input files!\n";
@@ -67,10 +76,10 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
 
 bool Preprocess() {
 
-    for(auto& File : WotScriptFiles) {
+    for(size_t j = 0; j < WotScriptFiles.size(); j++) {
 
         std::unordered_map<std::string, std::vector<MacroInformation>> Macros;
-        std::string& Content = File.second;
+        std::string& Content = WotScriptFiles[j].second;
         for(size_t i = 0; i < Content.size();) {
 
             i = Content.find(MACRO_IDENTIFIER, i);
@@ -92,9 +101,29 @@ bool Preprocess() {
 
             );
 
+            std::cout << Content.substr(i, MacroStart - i) << "    " << Content.substr(MacroStart, MacroLength) << "         " << i << '\n';
+
         }
 
     }
 
-    return false;
+    return true;
+}
+
+std::vector<char> ReadFile(const std::string& Filename) {
+    std::ifstream file(Filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file!");
+    }
+
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    file.close();
+
+    return buffer;
 }

@@ -20,9 +20,11 @@ workspace "WotScript"
 
     filter { "configurations:Debug" }
             symbols "On"
+            optimize "Off"
 
     filter { "configurations:Release" }
             optimize "On"
+            symbols "Off"
     filter { }
 
     if(Is64bit) then
@@ -34,6 +36,10 @@ workspace "WotScript"
 
         objdir ("build32/obj/%{prj.name}/%{cfg.longname}")
     end
+
+    if os.execute("clang -v") == 0 then
+        toolset "clang"
+     end
 
 project "Scanner-Preprocessor"
 
