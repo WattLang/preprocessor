@@ -1,3 +1,4 @@
+#if defined(USE_C_VERSION)
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -479,7 +480,6 @@ int Preprocess(size_t FileCount, const char** Processees, const size_t* Processe
 				break;
 			}
 			else {
-				fprintf(stdout, SIZE_PRINT, (*ProcessedOutputLengths)[i] - (((size_t)CurrentUsedMacro - (size_t)(*ProcessedOutputContents)[i])));
 				if (memshift(CurrentUsedMacro, MacroDefinitionLengths[MacrosApplied] - MacroNameLengths[MacrosApplied], CurrentProcessedSize - (((size_t)CurrentUsedMacro - (size_t)(*ProcessedOutputContents)[i])), 1) == NULL) {
 					fprintf( stderr, "Failed to shift ProcessedOutputContents["SIZE_PRINT"] by "SIZE_PRINT" bytes", i, MacroDefinitionLengths[MacrosApplied]);
 					return 1;
@@ -555,3 +555,4 @@ int FormatForJSON(size_t FileCount, const char** Files, char*** FileContents, si
 	}
 	return 0;
 }
+#endif
