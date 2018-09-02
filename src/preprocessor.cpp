@@ -30,7 +30,7 @@ void WriteFile(const std::string &OutputFile);
 int main(int argc, char* argv[]) {
     if(argc < 2)
     {
-        std::cerr << "No arguments!\n";
+        std::cerr << "No arguments!\nUsage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
         return 1;
     }
     MacroModules2.emplace_back(std::make_unique<IncludeModule>());
@@ -47,6 +47,14 @@ int main(int argc, char* argv[]) {
         {
             if(!strcmp(argv[i], "-o")) {
                 OutputFile = std::string(argv[++i]);
+            }
+            else
+            {
+                if(!strcmp(argv[i], "-h"))
+                {
+                    std::cout << "Usage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
+                    return 0;
+                }
             }
         }
     }
