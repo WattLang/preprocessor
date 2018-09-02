@@ -16,8 +16,9 @@ class IncludeModule : public IModule {
         bool ForceInclude;
     };
 
-    std::vector<Include>     Includes;
-    std::vector<std::string> IncludedFiles;
+
+    std::map<std::string, std::vector<Include>>     Includes;       // File name, includes
+    std::map<std::string, std::vector<std::string>> IncludedFiles;  // Fine name, include name
 
 public:
 
