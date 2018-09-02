@@ -10,6 +10,6 @@ src/DefineModule.cpp
 src/IncludeModule.cpp
 )
 
-file(COPY test/ DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY test/ DESTINATION ${CMAKE_BINARY_DIR}/test)
 
 add_test(NAME SanityCheck COMMAND ${CMAKE_PROJECT_NAME} test/Test.ws)
