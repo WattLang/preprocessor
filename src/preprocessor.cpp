@@ -7,7 +7,7 @@
 #include <sstream>
 #include <algorithm>
 
-#include <module.h>
+#include "module.h"
 
 #include "IMacro.hpp"
 #include "DefineModule.hpp"
