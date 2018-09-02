@@ -8,6 +8,7 @@
 
 #include "IMacro.hpp"
 #include "DefineModule.hpp"
+#include "IncludeModule.hpp"
 
 #define MACRO_IDENTIFIER "@"
 #define MACRO_START "["
@@ -27,6 +28,7 @@ bool Preprocess(std::ostream& ErrorOutputStream);
 
 int main(int argc, char* argv[]) {
 
+    MacroModules["include"]  = std::make_shared<IncludeModule>();
     MacroModules["define"]   = std::make_shared<DefineModule>();
     MacroModules["undefine"] = MacroModules["define"];
     
@@ -127,7 +129,9 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
 
             );
 
-            i = MacroEnd;
+            Content.erase(i - 1, (MacroEnd - i) + 2);
+
+            i = 0;
 
         }
 

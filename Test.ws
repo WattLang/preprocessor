@@ -3,3 +3,4 @@ This is a test file
 that test defines
 @undefine[defines]
 Also un defines it
+@include[Test.ws]

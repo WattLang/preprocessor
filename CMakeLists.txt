@@ -4,8 +4,10 @@ project(Scanner-Preprocessor CXX)
 include(CTest)
 
 add_executable(${CMAKE_PROJECT_NAME}
-src/scanner.cpp
-src/DefineModule.cpp)
+src/preprocessor.cpp
+src/DefineModule.cpp
+src/IncludeModule.cpp
+)
 
 add_test(NAME SanityCheck COMMAND ${CMAKE_PROJECT_NAME} Test.ws)
 
