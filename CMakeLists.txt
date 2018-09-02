@@ -12,4 +12,4 @@ src/IncludeModule.cpp
 
 file(COPY test/ DESTINATION ${CMAKE_BINARY_DIR})
 
-add_test(NAME SanityCheck COMMAND ${CMAKE_PROJECT_NAME} Test.ws)
+add_test(NAME SanityCheck COMMAND ${CMAKE_PROJECT_NAME} test/Test.ws)
