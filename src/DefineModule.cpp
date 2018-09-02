@@ -2,23 +2,19 @@
 
 bool DefineModule::PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) {
 
-    if(Macros[0].Type == "define") {
-        for(auto& Macro : Macros) {
+    for(auto& Macro : Macros) {
 
-            size_t DefinitionSeperator = Macro.Data.find(':');
+        if(Macro.Type == UNDEFINE_KEYWORD) {
+            Undefines[Macro.Data] = Macro.DefinedOnIndex;
+        }
+        else if(Macro.Type == DEFINE_KEYWORD) {
+            size_t DefinitionSeperator = Macro.Data.find(DEFINITION_VALUE_SEPERATOR);
 
             Defines[Macro.Data.substr(0, DefinitionSeperator)].Value
                 = Macro.Data.substr(DefinitionSeperator + 1, Macro.Data.size() - DefinitionSeperator);
             Defines[Macro.Data.substr(0, DefinitionSeperator)].DefinedOnIndex = Macro.DefinedOnIndex;
-
         }
-    }
-    else if(Macros[0].Type == "undefine") {
-        for(auto& Macro : Macros) {
 
-            Undefines[Macro.Data] = Macro.DefinedOnIndex;
-
-        }
     }
 
     return true;
@@ -38,12 +34,14 @@ bool DefineModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream) 
             if(Undefines.count(DKV.first) > 0) {
                 if(i < Undefines[DKV.first]) {
                     Data.replace(i, DKV.first.size(), DKV.second.Value);
+                    //i += DKV.second.Value.size() - DKV.first.size();
                 }
                 else {
                     break;
                 }
             } else {
                 Data.replace(i, DKV.first.size(), DKV.second.Value);
+                //i += DKV.second.Value.size() - DKV.first.size();
             }
 
         }
@@ -51,4 +49,10 @@ bool DefineModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream) 
 
     return true;
 
+}
+
+bool DefineModule::ClearCommandList(std::ostream& ErrorOutputStream) {
+    Defines.clear();
+    Undefines.clear();
+    return true;
 }

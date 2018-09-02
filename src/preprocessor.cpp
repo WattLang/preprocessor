@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <sstream>
+#include <algorithm>
 
 #include "IMacro.hpp"
 #include "DefineModule.hpp"
@@ -15,7 +16,7 @@
 #define MACRO_END "]"
 
 std::vector<std::pair<std::string, std::string>>           WotScriptFiles;  // Name then contents
-std::unordered_map<std::string, std::shared_ptr<IMacro>>   MacroModules;    // The key is the macro, and then a pointer to the module
+std::vector<std::unique_ptr<IMacro>>                       MacroModules2;
 
 
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
@@ -28,9 +29,8 @@ bool Preprocess(std::ostream& ErrorOutputStream);
 
 int main(int argc, char* argv[]) {
 
-    MacroModules["include"]  = std::make_shared<IncludeModule>();
-    MacroModules["define"]   = std::make_shared<DefineModule>();
-    MacroModules["undefine"] = MacroModules["define"];
+    MacroModules2.emplace_back(std::make_unique<IncludeModule>());
+    MacroModules2.emplace_back(std::make_unique<DefineModule>());
     
 
     if(!GetFiles(argc, argv, std::cerr)) {
@@ -108,6 +108,9 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
     for(size_t j = 0; j < WotScriptFiles.size(); j++) {
 
         std::unordered_map<std::string, std::vector<MacroInformation>> Macros;
+
+        std::vector<std::vector<MacroInformation>> MacroCommandsList(MacroModules2.size());
+
         std::string& Content = WotScriptFiles[j].second;
         for(size_t i = 0; i < Content.size();) {
 
@@ -130,36 +133,33 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
                 return false;
             }
 
-            Macros[Content.substr(i, MacroStart - i - 1)].emplace_back(
+            for(size_t k = 0; k < MacroModules2.size(); k++) {
+                if(std::find(
+                    MacroModules2[k]->MacroCommands.begin(), 
+                    MacroModules2[k]->MacroCommands.end(), 
+                    Content.substr(i, MacroStart - i - 1))
+                    != MacroModules2[k]->MacroCommands.end()
+                ) {
 
-                Content.substr(i, MacroStart - i - 1),
-                Content.substr(MacroStart, MacroLength),
-                (i - 1)
+                    MacroCommandsList[k].emplace_back(
+                        Content.substr(i, MacroStart - i - 1),
+                        Content.substr(MacroStart, MacroLength),
+                        (i - 2)
+                    );
 
-            );
-
-            Content.erase(i - 1, (MacroEnd - i) + 2);
-
-            i = 0;
-
-        }
-
-        for(auto& MacrosKV: Macros) {
-            if(MacroModules.count(MacrosKV.first) < 1) {
-                ErrorOutputStream << "There isn't a preprocessing module for \"" << MacrosKV.first << "\" macros!\n";
-                continue;
-            }
-            else {
-                if(!MacroModules[MacrosKV.first]->PushCommandList(MacrosKV.second, ErrorOutputStream)){
-                    ErrorOutputStream << "Error pushing macro list to the \"" << MacrosKV.first << "\" module\n";
-                    return false;
+                    Content.erase(i - 1, (MacroEnd - i) + 2);
+                    i = 0;
                 }
             }
         }
 
-        for(auto& MacroModulesKV: MacroModules) {
-            if(!MacroModulesKV.second->Proccess(Content, ErrorOutputStream)){
-                ErrorOutputStream << "Error processing for the \""<< MacroModulesKV.first<< "\" module!\n";
+        for(size_t i = 0; i < MacroModules2.size(); i++) {
+            if(!MacroModules2[i]->PushCommandList(MacroCommandsList[i], ErrorOutputStream)) {
+                ErrorOutputStream << "Error pushing macro list to the \"" << MacroModules2[i]->Name << "\" module\n";
+                return false;
+            }
+            if(!MacroModules2[i]->Proccess(Content, ErrorOutputStream)) {
+                ErrorOutputStream << "Error proccessing macro list to the \"" << MacroModules2[i]->Name << "\" module\n";
                 return false;
             }
         }

@@ -35,7 +35,14 @@ bool IncludeModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream)
 
     }
 
+    Includes.clear();
+
 
     return true;
 
+}
+
+bool IncludeModule::ClearCommandList(std::ostream& ErrorOutputStream) {
+    Includes.clear();
+    return true;
 }

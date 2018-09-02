@@ -13,9 +13,15 @@ struct MacroInformation {
 
 class IMacro {
 public:
-    IMacro() {};
+    IMacro(const std::vector<std::string>& MacroCommandsIn, const std::string& NameIn)
+     : MacroCommands(MacroCommandsIn), Name(NameIn)
+    {};
     virtual ~IMacro() {}
+
+    const std::vector<std::string> MacroCommands;
+    const std::string              Name;
 
     virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) = 0;
     virtual bool Proccess(std::string& Data, std::ostream& ErrorOutputStream) = 0;
+    virtual bool ClearCommandList(std::ostream& ErrorOutputStream) = 0;
 };
