@@ -43,8 +43,24 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    for(size_t i = 0; i < WotScriptFiles.size(); i++) {
+    /*for(size_t i = 0; i < WotScriptFiles.size(); i++) {
         std::cout << WotScriptFiles[i].second << std::endl;
+    }*/
+
+    for(size_t i = 0; i < WotScriptFiles.size(); i++) {
+        std::string& Contents = WotScriptFiles[i].second;
+        for(size_t j = 0; j < Contents.size(); j++) {
+
+            size_t LineBegin = j;
+            j = Contents.find('\n', j);
+            if(j == std::string::npos) {
+                std::cout << Contents;
+                continue;
+            }
+
+            std::cout << Contents.substr(LineBegin, j - LineBegin) << std::endl;
+
+        }
     }
 
     return 0;
