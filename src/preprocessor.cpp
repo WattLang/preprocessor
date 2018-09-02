@@ -41,21 +41,29 @@ int main(int argc, char* argv[]) {
 
     for(int i = 1; i < argc; ++i) {
         if(!strcmp(argv[i], "-i")) {
-            InputFiles.push_back(std::string(argv[++i]));
+            if(++i < argc) {
+                InputFiles.push_back(std::string(argv[i]));
+            }
+            else {
+                std::cerr << "Missing argument after -i\n";
+                return 1;
+            }
         }
-        else
+
+        else if(!strcmp(argv[i], "-o")) {
+            if(++i < argc) {
+                OutputFile = std::string(argv[i]);
+            }
+            else {
+                std::cerr << "Missing argument after -o\n";
+                return 1;
+            }
+        }
+
+        else if(!strcmp(argv[i], "-h"))
         {
-            if(!strcmp(argv[i], "-o")) {
-                OutputFile = std::string(argv[++i]);
-            }
-            else
-            {
-                if(!strcmp(argv[i], "-h"))
-                {
-                    std::cout << "Usage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
-                    return 0;
-                }
-            }
+            std::cout << "Usage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
+            return 0;
         }
     }
 
