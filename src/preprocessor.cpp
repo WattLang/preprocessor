@@ -164,7 +164,7 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
     }
 
     if(Reprocess) {
-        Preprocess(ErrorOutputStream);
+        return Preprocess(ErrorOutputStream);
     }
 
     return true;
