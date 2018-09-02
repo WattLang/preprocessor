@@ -41,6 +41,10 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
+    for(size_t i = 0; i < WotScriptFiles.size(); i++) {
+        std::cout << WotScriptFiles[i].second << std::endl;
+    }
+
     return 0;
 }
 
