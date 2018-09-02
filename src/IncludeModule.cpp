@@ -4,7 +4,7 @@
 #include <sstream>
 #include <algorithm>
 
-bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) {
+bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream& ErrorOutputStream) {
 
     for(auto& Macro : Macros) {
         if(Macro.Type == INCLUDE_MACRO) {
@@ -19,7 +19,7 @@ bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros,
     return true;
 
 }
-bool IncludeModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream) {
+bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std::ostream& ErrorOutputStream) {
 
 
     std::ifstream File;
@@ -52,7 +52,7 @@ bool IncludeModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream)
 
 }
 
-bool IncludeModule::ClearCommandList(std::ostream& ErrorOutputStream) {
+bool IncludeModule::ClearCommandList(const std::string& FileName, std::ostream& ErrorOutputStream) {
     Includes.clear();
     return true;
 }

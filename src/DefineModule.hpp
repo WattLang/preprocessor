@@ -2,13 +2,13 @@
 
 #include <map>
 
-#include "IMacro.hpp"
+#include "IModule.hpp"
 
 #define DEFINE_KEYWORD "define"
 #define UNDEFINE_KEYWORD "undefine"
 #define DEFINITION_VALUE_SEPERATOR ':'
 
-class DefineModule : public IMacro {
+class DefineModule : public IModule {
 
     struct Definition {
         std::string Value;
@@ -20,10 +20,10 @@ class DefineModule : public IMacro {
 
 public:
 
-    DefineModule() : IMacro({DEFINE_KEYWORD, UNDEFINE_KEYWORD}, "DefineModule"){}
+    DefineModule() : IModule({DEFINE_KEYWORD, UNDEFINE_KEYWORD}, "DefineModule"){}
 
-    virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) override;
-    virtual bool Proccess(std::string& Data, std::ostream& ErrorOutputStream) override;
-    virtual bool ClearCommandList(std::ostream& ErrorOutputStream) override;
+    virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream& ErrorOutputStream) override;
+    virtual bool Proccess(std::string& Data, const std::string& FileName, std::ostream& ErrorOutputStream) override;
+    virtual bool ClearCommandList(const std::string& FileName, std::ostream& ErrorOutputStream) override;
 
 };
