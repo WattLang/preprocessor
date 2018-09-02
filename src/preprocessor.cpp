@@ -96,6 +96,7 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
 
 bool Preprocess(std::ostream& ErrorOutputStream) {
 
+    bool Reprocess = false;
     for(size_t j = 0; j < WotScriptFiles.size(); j++) {
 
         std::unordered_map<std::string, std::vector<MacroInformation>> Macros;
@@ -155,6 +156,15 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
             }
         }
 
+        size_t TestForMoreMacros = Content.find(MACRO_IDENTIFIER);
+        if(TestForMoreMacros != std::string::npos) {
+            Reprocess = true;
+        }
+
+    }
+
+    if(Reprocess) {
+        Preprocess(ErrorOutputStream);
     }
 
     return true;
