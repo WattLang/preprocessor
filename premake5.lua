@@ -2,6 +2,7 @@ Is64bit = false
 
 workspace "WotScript"
     language "C++"
+    cppdialect "C++17"
 
     location "build"
     if(Is64bit) then
