@@ -1,6 +1,6 @@
 #include "DefineModule.hpp"
 
-bool DefineModule::PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) {
+bool DefineModule::PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream& ErrorOutputStream) {
 
     for(auto& Macro : Macros) {
 
@@ -21,7 +21,7 @@ bool DefineModule::PushCommandList(const std::vector<MacroInformation>& Macros, 
 
 }
 
-bool DefineModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream) {
+bool DefineModule::Proccess(std::string& Data, const std::string& FileName, std::ostream& ErrorOutputStream) {
 
     for(auto& DKV : Defines) {
         for(size_t i = 0; i < Data.size();) {
@@ -51,7 +51,7 @@ bool DefineModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream) 
 
 }
 
-bool DefineModule::ClearCommandList(std::ostream& ErrorOutputStream) {
+bool DefineModule::ClearCommandList(const std::string& FileName, std::ostream& ErrorOutputStream) {
     Defines.clear();
     Undefines.clear();
     return true;

@@ -9,7 +9,7 @@
 
 #include "module.h"
 
-#include "IMacro.hpp"
+#include "IModule.hpp"
 #include "DefineModule.hpp"
 #include "IncludeModule.hpp"
 
@@ -18,7 +18,7 @@
 #define MACRO_END "]"
 
 std::vector<std::pair<std::string, std::string>>           WotScriptFiles;  // Name then contents
-std::vector<std::unique_ptr<IMacro>>                       MacroModules2;
+std::vector<std::unique_ptr<IModule>>                       MacroModules2;
 
 
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
@@ -145,12 +145,12 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
         }
 
         for(size_t i = 0; i < MacroModules2.size(); i++) {
-            if(!MacroModules2[i]->PushCommandList(MacroCommandsList[i], ErrorOutputStream)) {
+            if(!MacroModules2[i]->PushCommandList(MacroCommandsList[i], WotScriptFiles[j].first, ErrorOutputStream)) {
                 ErrorOutputStream << "Error pushing macro list to the \"" << MacroModules2[i]->Name << "\" module\n";
                 return false;
             }
-            if(!MacroModules2[i]->Proccess(Content, ErrorOutputStream)) {
-                ErrorOutputStream << "Error proccessing macro list to the \"" << MacroModules2[i]->Name << "\" module\n";
+            if(!MacroModules2[i]->Proccess(Content, WotScriptFiles[j].first, ErrorOutputStream)) {
+                ErrorOutputStream << "Error proccessing macro list for the \"" << MacroModules2[i]->Name << "\" module\n";
                 return false;
             }
         }
