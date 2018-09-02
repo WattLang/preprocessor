@@ -7,6 +7,8 @@
 #include <sstream>
 #include <algorithm>
 
+#include <module.h>
+
 #include "IMacro.hpp"
 #include "DefineModule.hpp"
 #include "IncludeModule.hpp"
@@ -23,15 +25,10 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
 bool Preprocess(std::ostream& ErrorOutputStream);
 
 
-
-
-
-
 int main(int argc, char* argv[]) {
 
     MacroModules2.emplace_back(std::make_unique<IncludeModule>());
     MacroModules2.emplace_back(std::make_unique<DefineModule>());
-    
 
     if(!GetFiles(argc, argv, std::cerr)) {
         std::cerr << "Failed to get wotscript files!\n";
@@ -43,10 +40,6 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    /*for(size_t i = 0; i < WotScriptFiles.size(); i++) {
-        std::cout << WotScriptFiles[i].second << std::endl;
-    }*/
-
     for(size_t i = 0; i < WotScriptFiles.size(); i++) {
         std::string& Contents = WotScriptFiles[i].second;
         for(size_t j = 0; j < Contents.size(); j++) {
@@ -54,7 +47,8 @@ int main(int argc, char* argv[]) {
             size_t LineBegin = j;
             j = Contents.find('\n', j);
             if(j == std::string::npos) {
-                std::cout << Contents;
+                //std::cout << Contents;
+                ws::pipe(Contents);
                 continue;
             }
 
@@ -65,9 +59,6 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-
-
 
 
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
