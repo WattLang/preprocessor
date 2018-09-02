@@ -30,6 +30,8 @@ bool IncludeModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream)
 
         StringStream.str("");
         StringStream.clear();
+        
+        File.close();
 
     }
 
