@@ -1,7 +1,7 @@
 @define[defines:NOICENESS]
 This is a test file
-that test defines
+that tests defines
 @undefine[defines]
-Also un defines it
+and also un defines it
 
 @include[IncludeTest.ws]

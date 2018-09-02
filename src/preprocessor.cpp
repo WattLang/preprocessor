@@ -70,35 +70,27 @@ int main(int argc, char* argv[]) {
 
 
 
-
-
-std::string ReadFile(const std::string& Filename) {
-    std::ifstream File(Filename, std::ios::binary);
-    if (!File.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-    
-    std::stringstream Buffer;
-    Buffer << File.rdbuf();
-
-    File.close();
-
-    return Buffer.str();
-}
-
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
 
     if(argc > 1) {
-        WotScriptFiles.resize(argc - 1);
+        WotScriptFiles.reserve(argc - 1);
+        std::ifstream File;
+        std::stringstream FileInput;
         for(size_t i = 1; i < argc; i++) {
-            WotScriptFiles[i-1].first  = std::string(argv[i]);
-            try{
-                WotScriptFiles[i-1].second = ReadFile(argv[i]);
+
+            File.open(argv[i]);
+            if(!File.is_open()) {
+                ErrorOutputStream << "Could not open file: \"" << argv[i] << "\"!\n";
+                return false;
             }
-            catch(std::exception& e){
-                ErrorOutputStream << "Error: " << e.what() << std::endl;
-                continue;
-            }
+
+            FileInput << File.rdbuf();
+
+            WotScriptFiles.emplace_back(argv[i], FileInput.str());
+
+            File.close();
+            FileInput.str("");
+            FileInput.clear();
         }
         return true;
     }
