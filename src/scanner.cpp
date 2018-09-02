@@ -6,34 +6,30 @@
 #include <memory>
 #include <sstream>
 
+#include "IMacro.hpp"
+#include "DefineModule.hpp"
+
 #define MACRO_IDENTIFIER "@"
 #define MACRO_START "["
 #define MACRO_END "]"
 
-struct MacroInformation {
-    MacroInformation(const std::string& Type, const std::string& Data, size_t DefinedOn) : Type(Type), Data(Data), DefinedOnIndex(DefinedOn) {}
-    std::string Type;
-    std::string Data;
-    size_t DefinedOnIndex;
-};
-
-class IMacro {
-public:
-    IMacro() {};
-    virtual ~IMacro() {}
-
-    virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) = 0;
-    virtual bool Proccess(std::string& Data, std::ostream& ErrorOutputStream) = 0;
-};
-
 std::vector<std::pair<std::string, std::string>>           WotScriptFiles;  // Name then contents
 std::unordered_map<std::string, std::shared_ptr<IMacro>>   MacroModules;    // The key is the macro, and then a pointer to the module
 
+
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
 bool Preprocess(std::ostream& ErrorOutputStream);
-std::string ReadFile(const std::string& Filename);
+
+
+
+
+
 
 int main(int argc, char* argv[]) {
+
+    MacroModules["define"]   = std::make_shared<DefineModule>();
+    MacroModules["undefine"] = MacroModules["define"];
+    
 
     if(!GetFiles(argc, argv, std::cerr)) {
         std::cerr << "Failed to get wotscript files!\n";
@@ -46,6 +42,26 @@ int main(int argc, char* argv[]) {
     }
 
     return 0;
+}
+
+
+
+
+
+
+
+std::string ReadFile(const std::string& Filename) {
+    std::ifstream File(Filename, std::ios::binary);
+    if (!File.is_open()) {
+        throw std::runtime_error("failed to open file!");
+    }
+    
+    std::stringstream Buffer;
+    Buffer << File.rdbuf();
+
+    File.close();
+
+    return Buffer.str();
 }
 
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
@@ -118,7 +134,8 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
             }
             else {
                 if(!MacroModules[MacrosKV.first]->PushCommandList(MacrosKV.second, ErrorOutputStream)){
-                    ErrorOutputStream << "Error pushing macro";
+                    ErrorOutputStream << "Error pushing macro list to the \"" << MacrosKV.first << "\" module\n";
+                    return false;
                 }
             }
         }
@@ -133,17 +150,4 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
     }
 
     return true;
-}
-std::string ReadFile(const std::string& Filename) {
-    std::ifstream File(Filename, std::ios::binary);
-    if (!File.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-    
-    std::stringstream Buffer;
-    Buffer << File.rdbuf();
-
-    File.close();
-
-    return Buffer.str();
 }
