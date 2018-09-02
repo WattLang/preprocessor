@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
-#include <cstring>
+#include <sstream>
 
 #define MACRO_IDENTIFIER "@"
 #define MACRO_START "["
@@ -22,16 +22,16 @@ public:
     IMacro() {};
     virtual ~IMacro() {}
 
-    virtual bool Proccess(const std::vector<MacroInformation>& Macros, std::string& Data, std::ostream& ErrorOutputStream) = 0;
+    virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, std::ostream& ErrorOutputStream) = 0;
+    virtual bool Proccess(std::string& Data, std::ostream& ErrorOutputStream) = 0;
 };
 
 std::vector<std::pair<std::string, std::string>>           WotScriptFiles;  // Name then contents
-std::vector<std::string>                                   ModuleNames;     // Names of the modules
 std::unordered_map<std::string, std::shared_ptr<IMacro>>   MacroModules;    // The key is the macro, and then a pointer to the module
 
 bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
-bool Preprocess();
-std::vector<char> ReadFile(const std::string& Filename);
+bool Preprocess(std::ostream& ErrorOutputStream);
+std::string ReadFile(const std::string& Filename);
 
 int main(int argc, char* argv[]) {
 
@@ -40,12 +40,7 @@ int main(int argc, char* argv[]) {
         return 1; 
     }
 
-
-    for(size_t i = 0; i < WotScriptFiles.size(); i++) {
-        std::cout << WotScriptFiles[i].first << "      :      " << WotScriptFiles[i].second << std::endl;
-    }
-
-    if(!Preprocess()) {
+    if(!Preprocess(std::cerr)) {
         std::cerr << "Failed to preprocess!\n";
         return 2;
     }
@@ -58,10 +53,14 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
     if(argc > 1) {
         WotScriptFiles.resize(argc - 1);
         for(size_t i = 1; i < argc; i++) {
-            WotScriptFiles[i - 1].first = argv[i];
-            std::vector<char> Data = ReadFile(WotScriptFiles[i - 1].first);
-            WotScriptFiles[i - 1].second = std::string(Data.begin(), Data.end());
-            std::cout << WotScriptFiles[i - 1].first << "      :      " << WotScriptFiles[i - 1].second << std::endl;
+            WotScriptFiles[i-1].first  = std::string(argv[i]);
+            try{
+                WotScriptFiles[i-1].second = ReadFile(argv[i]);
+            }
+            catch(std::exception& e){
+                ErrorOutputStream << "Error: " << e.what() << std::endl;
+                continue;
+            }
         }
         return true;
     }
@@ -73,7 +72,7 @@ bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
     return true;
 }
 
-bool Preprocess() {
+bool Preprocess(std::ostream& ErrorOutputStream) {
 
     for(size_t j = 0; j < WotScriptFiles.size(); j++) {
 
@@ -82,47 +81,69 @@ bool Preprocess() {
         for(size_t i = 0; i < Content.size();) {
 
             i = Content.find(MACRO_IDENTIFIER, i);
+            if(i == std::string::npos) {
+                continue;
+            }
             i++;
-
             if(i == std::string::npos) {
                 continue;
             }
 
             size_t MacroStart  = Content.find(MACRO_START, i);
             size_t MacroEnd    = Content.find(MACRO_END, MacroStart);
+            MacroStart++;
             size_t MacroLength = MacroEnd - MacroStart;
 
-            Macros[Content.substr(i, MacroStart - i)].emplace_back(
+            if(MacroStart == std::string::npos || MacroEnd == std::string::npos) {
+                ErrorOutputStream << "Expected a macro value!\n";
+                return false;
+            }
 
-                Content.substr(i, MacroStart - i),
+            Macros[Content.substr(i, MacroStart - i - 1)].emplace_back(
+
+                Content.substr(i, MacroStart - i - 1),
                 Content.substr(MacroStart, MacroLength),
-                i
+                (i - 1)
 
             );
 
-            std::cout << Content.substr(i, MacroStart - i) << "    " << Content.substr(MacroStart, MacroLength) << "         " << i << '\n';
+            i = MacroEnd;
 
+        }
+
+        for(auto& MacrosKV: Macros) {
+            if(MacroModules.count(MacrosKV.first) < 1) {
+                ErrorOutputStream << "There isn't a preprocessing module for \"" << MacrosKV.first << "\" macros!\n";
+                continue;
+            }
+            else {
+                if(!MacroModules[MacrosKV.first]->PushCommandList(MacrosKV.second, ErrorOutputStream)){
+                    ErrorOutputStream << "Error pushing macro";
+                }
+            }
+        }
+
+        for(auto& MacroModulesKV: MacroModules) {
+            if(!MacroModulesKV.second->Proccess(Content, ErrorOutputStream)){
+                ErrorOutputStream << "Error processing for the \""<< MacroModulesKV.first<< "\" module!\n";
+                return false;
+            }
         }
 
     }
 
     return true;
 }
-
-std::vector<char> ReadFile(const std::string& Filename) {
-    std::ifstream file(Filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
+std::string ReadFile(const std::string& Filename) {
+    std::ifstream File(Filename, std::ios::binary);
+    if (!File.is_open()) {
         throw std::runtime_error("failed to open file!");
     }
+    
+    std::stringstream Buffer;
+    Buffer << File.rdbuf();
 
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
+    File.close();
 
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-
-    return buffer;
+    return Buffer.str();
 }
