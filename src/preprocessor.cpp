@@ -150,7 +150,7 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
                 return false;
             }
             if(!MacroModules2[i]->Proccess(Content, ErrorOutputStream)) {
-                ErrorOutputStream << "Error proccessing macro list to the \"" << MacroModules2[i]->Name << "\" module\n";
+                ErrorOutputStream << "Error proccessing macro list for the \"" << MacroModules2[i]->Name << "\" module\n";
                 return false;
             }
         }

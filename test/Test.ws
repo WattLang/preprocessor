@@ -4,4 +4,4 @@ that tests defines
 @undefine[defines]
 and also un defines it
 
-@include[IncludeTest.ws]
+@include[test/IncludeTest.ws]
