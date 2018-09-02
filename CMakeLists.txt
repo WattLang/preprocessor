@@ -7,11 +7,10 @@ include(CTest)
 add_executable(${CMAKE_PROJECT_NAME}
 src/preprocessor.cpp
 src/DefineModule.cpp
-src/IncludeModule.cpp
-)
+src/IncludeModule.cpp)
 
-set_property(GLOBAL PROPERTY CXX_STANDARD 17)
-set_property(GLOBAL PROPERTY CXX_STANDARD_REQUIRED TRUE)
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 file(COPY test/ DESTINATION ${CMAKE_BINARY_DIR}/test)
 
