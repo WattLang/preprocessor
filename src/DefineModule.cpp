@@ -35,11 +35,15 @@ bool DefineModule::Proccess(std::string& Data, std::ostream& ErrorOutputStream) 
                 break;
             }
 
-            if(i < Undefines[DKV.first]) {
+            if(Undefines.count(DKV.first) > 0) {
+                if(i < Undefines[DKV.first]) {
+                    Data.replace(i, DKV.first.size(), DKV.second.Value);
+                }
+                else {
+                    break;
+                }
+            } else {
                 Data.replace(i, DKV.first.size(), DKV.second.Value);
-            }
-            else {
-                break;
             }
 
         }
