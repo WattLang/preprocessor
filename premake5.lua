@@ -47,6 +47,8 @@ project "Scanner-Preprocessor"
 
     files { "src/**.hpp", "src/**.cpp", "src/**.inl", "src/**.h", "src/**.c"  }
 
+    includedirs "./lib/module"
+
     filter "configurations:Debug"
             defines { "DEBUG" }
 
