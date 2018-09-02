@@ -10,6 +10,6 @@ src/DefineModule.cpp
 src/IncludeModule.cpp
 )
 
-add_test(NAME SanityCheck COMMAND ${CMAKE_PROJECT_NAME} Test.ws)
+file(COPY test/ DESTINATION ${CMAKE_BINARY_DIR})
 
-file(COPY Test.ws IncludeTest.ws .gitignore DESTINATION ${CMAKE_BINARY_DIR})
+add_test(NAME SanityCheck COMMAND ${CMAKE_PROJECT_NAME} Test.ws)
