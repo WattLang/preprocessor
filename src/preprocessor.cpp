@@ -6,6 +6,7 @@
 #include <memory>
 #include <sstream>
 #include <algorithm>
+#include <cstring>
 
 #include "module.h"
 
@@ -21,18 +22,54 @@ std::vector<std::pair<std::string, std::string>>           WotScriptFiles;  // N
 std::vector<std::unique_ptr<IModule>>                       MacroModules2;
 
 
-bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream);
+bool GetFiles(const std::vector<std::string> &Files, std::ostream& ErrorOutputStream);
 bool Preprocess(std::ostream& ErrorOutputStream);
+void WriteFile(const std::string &OutputFile);
 
 
 int main(int argc, char* argv[]) {
-
+    if(argc < 2)
+    {
+        std::cerr << "No arguments!\nUsage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
+        return 1;
+    }
     MacroModules2.emplace_back(std::make_unique<IncludeModule>());
     MacroModules2.emplace_back(std::make_unique<DefineModule>());
 
-    if(!GetFiles(argc, argv, std::cerr)) {
+    std::vector<std::string> InputFiles;
+    std::string OutputFile;
+
+    for(int i = 1; i < argc; ++i) {
+        if(!strcmp(argv[i], "-i")) {
+            if(++i < argc) {
+                InputFiles.push_back(std::string(argv[i]));
+            }
+            else {
+                std::cerr << "Missing argument after -i\n";
+                return 1;
+            }
+        }
+
+        else if(!strcmp(argv[i], "-o")) {
+            if(++i < argc) {
+                OutputFile = std::string(argv[i]);
+            }
+            else {
+                std::cerr << "Missing argument after -o\n";
+                return 1;
+            }
+        }
+
+        else if(!strcmp(argv[i], "-h"))
+        {
+            std::cout << "Usage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
+            return 0;
+        }
+    }
+
+    if(!GetFiles(InputFiles, std::cerr)) {
         std::cerr << "Failed to get wotscript files!\n";
-        return 1; 
+        return 1;
     }
 
     if(!Preprocess(std::cerr)) {
@@ -40,56 +77,42 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    for(size_t i = 0; i < WotScriptFiles.size(); i++) {
-        std::string& Contents = WotScriptFiles[i].second;
-        for(size_t j = 0; j < Contents.size(); j++) {
-
-            size_t LineBegin = j;
-            j = Contents.find('\n', j);
-            if(j == std::string::npos) {
-                //std::cout << Contents;
-                ws::pipe(Contents);
-                continue;
+    if(OutputFile.empty())
+    {
+        for(size_t i = 0; i < WotScriptFiles.size(); i++) {
+            std::string& Contents = WotScriptFiles[i].second;
+            for(size_t j = 0; j < Contents.size(); j++) {
+                size_t LineBegin = j;
+                j = Contents.find('\n', j);
+                if(j == std::string::npos) {
+                    //std::cout << Contents;
+                    ws::pipe(Contents);
+                    continue;
+                }
+                std::cout << Contents.substr(LineBegin, j - LineBegin) << std::endl;
             }
-
-            std::cout << Contents.substr(LineBegin, j - LineBegin) << std::endl;
-
         }
     }
-
+    else
+    {
+        WriteFile(OutputFile);
+    }
     return 0;
 }
 
 
-bool GetFiles(int argc, char** argv, std::ostream& ErrorOutputStream) {
-
-    if(argc > 1) {
-        WotScriptFiles.reserve(argc - 1);
-        std::ifstream File;
-        std::stringstream FileInput;
-        for(size_t i = 1; i < argc; i++) {
-
-            File.open(argv[i]);
-            if(!File.is_open()) {
-                ErrorOutputStream << "Could not open file: \"" << argv[i] << "\"!\n";
-                return false;
-            }
-
-            FileInput << File.rdbuf();
-
-            WotScriptFiles.emplace_back(argv[i], FileInput.str());
-
-            File.close();
-            FileInput.str("");
-            FileInput.clear();
+bool GetFiles(const std::vector<std::string> &files, std::ostream& ErrorOutputStream) {
+    std::ifstream File;
+    std::stringstream FileInput;
+    for(auto &path : files) {
+        File.open(path);
+        if(!File.is_open()) {
+            ErrorOutputStream << "Could not open file: \"" << path << "\"!\n";
+            return false;
         }
-        return true;
+        FileInput << File.rdbuf();
+        WotScriptFiles.emplace_back(path, FileInput.str());
     }
-    else {
-        ErrorOutputStream << "There were no input files!\n";
-        return false;
-    }
-
     return true;
 }
 
@@ -167,4 +190,13 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
     }
 
     return true;
+}
+
+void WriteFile(const std::string& OutputFile)
+{
+    std::fstream Output(OutputFile, std::ios::out | std::ios::binary);
+    for(int i = 0; i < WotScriptFiles.size(); ++i)
+    {
+        Output << WotScriptFiles[i].second;
+    }
 }
