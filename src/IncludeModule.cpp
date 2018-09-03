@@ -4,29 +4,23 @@
 #include <sstream>
 #include <algorithm>
 
-bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream&) {
-
+bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName) {
     for(auto& Macro : Macros) {
         if(Macro.Type == INCLUDE_MACRO) {
-            Includes[FileName].emplace_back(Macro.Data, Macro.DefinedOnIndex + 1, false);
+            mIncludes[FileName].emplace_back(Macro.Data, Macro.DefinedOnIndex + 1, false);
         }
         else if(Macro.Type == FORCE_INCLUDE_MACRO) {
-            Includes[FileName].emplace_back(Macro.Data, Macro.DefinedOnIndex + 1, true);
+            mIncludes[FileName].emplace_back(Macro.Data, Macro.DefinedOnIndex + 1, true);
         }
     }
-
-
     return true;
-
 }
-bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std::ostream& ErrorOutputStream) {
 
-
+bool IncludeModule::Proccess(std::string& Data, const std::string& FileName) {
     std::ifstream File;
     std::stringstream StringStream;
-    for(const auto& Include : Includes[FileName]) {
-
-        if(std::find(IncludedFiles[FileName].begin(), IncludedFiles[FileName].end(), Include.File) == IncludedFiles[FileName].end() || Include.ForceInclude) {
+    for(const auto& Include : mIncludes[FileName]) {
+        if(std::find(mIncludedFiles[FileName].begin(), mIncludedFiles[FileName].end(), Include.File) == mIncludedFiles[FileName].end() || Include.ForceInclude) {
             std::string AbsoluteFileName;
             if(Include.File[0] == '/') {
                 AbsoluteFileName = Include.File;
@@ -38,7 +32,7 @@ bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std
             }
             File.open(AbsoluteFileName);
             if(!File.is_open()) {
-                ErrorOutputStream << "Failed to open file: \"" << AbsoluteFileName << "\"!\n";
+                ws::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
                 return false;
             }
             StringStream << File.rdbuf();
@@ -49,19 +43,14 @@ bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std
 
             File.close();
 
-            IncludedFiles[FileName].emplace_back(Include.File);
+            mIncludedFiles[FileName].emplace_back(Include.File);
         }
-
     }
-
-    Includes.clear();
-
-
     return true;
-
 }
 
-bool IncludeModule::ClearCommandList(const std::string&, std::ostream&) {
-    Includes.clear();
+bool IncludeModule::ClearCommandList(const std::string&) {
+    mIncludes.clear();
+    mIncludedFiles.clear();
     return true;
 }
