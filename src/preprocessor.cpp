@@ -21,7 +21,7 @@ constexpr auto MACRO_END        = "]";
 using StringPair = std::pair<std::string, std::string>;
 using IModulePtr = std::unique_ptr<IModule>;
 
-bool GetFiles(const std::vector<std::string> &files, std::vector<StringPair>& DataVector);
+bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& DataVector);
 bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules);
 void WriteFile(const std::vector<StringPair>& DataVector,const std::string &OutputFile);
 
