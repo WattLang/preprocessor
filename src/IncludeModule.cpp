@@ -46,7 +46,7 @@ bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std
 
             StringStream.str("");
             StringStream.clear();
-            
+
             File.close();
 
             IncludedFiles[FileName].emplace_back(Include.File);
