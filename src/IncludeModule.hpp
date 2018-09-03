@@ -4,8 +4,8 @@
 
 #include "IModule.hpp"
 
-#define INCLUDE_MACRO       "include"
-#define FORCE_INCLUDE_MACRO "force_include"
+constexpr auto INCLUDE_MACRO       = "include";
+constexpr auto FORCE_INCLUDE_MACRO = "force_include";
 
 class IncludeModule : public IModule {
 
@@ -17,15 +17,15 @@ class IncludeModule : public IModule {
     };
 
 
-    std::map<std::string, std::vector<Include>>     Includes;       // File name, includes
-    std::map<std::string, std::vector<std::string>> IncludedFiles;  // Fine name, include name
+    std::map<std::string, std::vector<Include>>     mIncludes;       // File name, includes
+    std::map<std::string, std::vector<std::string>> mIncludedFiles;  // Fine name, include name
 
 public:
 
     IncludeModule() : IModule({INCLUDE_MACRO, FORCE_INCLUDE_MACRO}, "IncludeModule") {}
 
-    virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream& ErrorOutputStream) override;
-    virtual bool Proccess(std::string& Data, const std::string& FileName, std::ostream& ErrorOutputStream) override;
-    virtual bool ClearCommandList(const std::string& FileName, std::ostream& ErrorOutputStream) override;
+    virtual bool PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName) override;
+    virtual bool Proccess(std::string& Data, const std::string& FileName) override;
+    virtual bool ClearCommandList(const std::string& FileName) override;
 
 };

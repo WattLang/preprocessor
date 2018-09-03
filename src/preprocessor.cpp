@@ -14,13 +14,16 @@
 #include "DefineModule.hpp"
 #include "IncludeModule.hpp"
 
-#define MACRO_IDENTIFIER "@"
-#define MACRO_START "["
-#define MACRO_END "]"
+constexpr auto MACRO_IDENTIFIER = "@";
+constexpr auto MACRO_START      = "[";
+constexpr auto MACRO_END        = "]";
 
-bool GetFiles(const std::vector<std::string> &files, std::vector<std::pair<std::string, std::string>>& DataVector, std::ostream& ErrorOutputStream);
-bool Preprocess(std::pair<std::string, std::string>& Data, std::vector<std::unique_ptr<IModule>>& Modules, std::ostream& ErrorOutputStream);
-void WriteFile(const std::vector<std::pair<std::string, std::string>>& DataVector,const std::string &OutputFile);
+using StringPair = std::pair<std::string, std::string>;
+using IModulePtr = std::unique_ptr<IModule>;
+
+bool GetFiles(const std::vector<std::string> &files, std::vector<StringPair>& DataVector);
+bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules);
+void WriteFile(const std::vector<StringPair>& DataVector,const std::string &OutputFile);
 
 
 int main(int argc, char* argv[]) {
@@ -30,8 +33,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::vector<std::pair<std::string, std::string>>  WotScriptData;
-    std::vector<std::unique_ptr<IModule>>              MacroModules;
+    std::vector<std::string> Arguments{static_cast<size_t>(argc)};
+    for(int i = 0; i < argc; i++) {
+        Arguments.emplace_back(argv[i]);
+    }
+
+    std::vector<StringPair>  WotScriptData;
+    std::vector<IModulePtr>  MacroModules;
 
     MacroModules.emplace_back(std::make_unique<IncludeModule>());
     MacroModules.emplace_back(std::make_unique<DefineModule>());
@@ -39,41 +47,39 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> InputFiles;
     std::string OutputFile;
 
-    for(int i = 1; i < argc; ++i) {
-        if(!strcmp(argv[i], "-i")) {
-            if(++i < argc) {
-                InputFiles.emplace_back(argv[i]);
+    for(size_t i = 1; i < Arguments.size(); i++) {
+        if(Arguments[i] == "-i") {
+            if(++i < Arguments.size()) {
+                InputFiles.emplace_back(Arguments[i]);
             }
             else {
-                std::cerr << "Missing argument after -i\n";
+                ws::errorln("Missing argument after -i");
                 return 1;
             }
         }
-
-        else if(!strcmp(argv[i], "-o")) {
-            if(++i < argc) {
-                OutputFile = std::string(argv[i]);
+        else if(Arguments[i] == "-o") {
+            if(++i < Arguments.size()) {
+                OutputFile = Arguments[i];
             }
             else {
-                std::cerr << "Missing argument after -o\n";
+                ws::errorln("Missing argument after -o");
                 return 1;
             }
         }
-
-        else if(!strcmp(argv[i], "-h"))
-        {
+        else if(Arguments[i] == "-h") {
             std::cout << "Usage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
             return 0;
         }
     }
 
-    if(!GetFiles(InputFiles,WotScriptData, std::cerr)) {
+
+    if(!GetFiles(InputFiles,WotScriptData)) {
         std::cerr << "Failed to get wotscript files!\n";
         return 1;
     }
 
     for(auto& Data : WotScriptData) {
-        if(!Preprocess(Data, MacroModules, std::cerr)) {
+        if(!Preprocess(Data, MacroModules)) {
             std::cerr << "Failed to preprocess: \"" << Data.first << "\"!\n";
             return 2;
         }
@@ -87,11 +93,9 @@ int main(int argc, char* argv[]) {
                 size_t LineBegin = j;
                 j = Contents.find('\n', j);
                 if(j == std::string::npos) {
-                    //std::cout << Contents;
-                    ws::pipe(Contents);
                     continue;
                 }
-                std::cout << Contents.substr(LineBegin, j - LineBegin) << std::endl;
+                ws::pipeln(Contents.substr(LineBegin, j - LineBegin));
             }
         }
     }
@@ -103,13 +107,13 @@ int main(int argc, char* argv[]) {
 }
 
 
-bool GetFiles(const std::vector<std::string> &Files, std::vector<std::pair<std::string, std::string>>& DataVector, std::ostream& ErrorOutputStream) {
+bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& DataVector) {
     std::ifstream File;
     std::stringstream FileInput;
     for(auto &Path : Files) {
         File.open(Path);
         if(!File.is_open()) {
-            ErrorOutputStream << "Could not open file: \"" << Path << "\"!\n";
+            ws::errorln("Could not open file: \"", Path, "\"!");
             return false;
         }
         FileInput << File.rdbuf();
@@ -118,7 +122,7 @@ bool GetFiles(const std::vector<std::string> &Files, std::vector<std::pair<std::
     return true;
 }
 
-bool Preprocess(std::pair<std::string, std::string>& Data, std::vector<std::unique_ptr<IModule>>& Modules, std::ostream& ErrorOutputStream) {
+bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules) {
 
     bool Reprocess = false;
 
@@ -134,9 +138,6 @@ bool Preprocess(std::pair<std::string, std::string>& Data, std::vector<std::uniq
             continue;
         }
         i++;
-        if(i == std::string::npos) {
-            continue;
-        }
 
         size_t MacroStart  = Content.find(MACRO_START, i);
         size_t MacroEnd    = Content.find(MACRO_END, MacroStart);
@@ -144,7 +145,7 @@ bool Preprocess(std::pair<std::string, std::string>& Data, std::vector<std::uniq
         size_t MacroLength = MacroEnd - MacroStart;
 
         if(MacroStart == std::string::npos || MacroEnd == std::string::npos) {
-            ErrorOutputStream << "Expected a macro value!\n";
+            ws::errorln("Expected a macro value at index:", i, " in: \"", Data.first, "\"!");
             return false;
         }
 
@@ -169,12 +170,12 @@ bool Preprocess(std::pair<std::string, std::string>& Data, std::vector<std::uniq
     }
 
     for(size_t i = 0; i < Modules.size(); i++) {
-        if(!Modules[i]->PushCommandList(MacroCommandsList[i], Data.first, ErrorOutputStream)) {
-            ErrorOutputStream << "Error pushing macro list to the \"" << Modules[i]->Name << "\" module\n";
+        if(!Modules[i]->PushCommandList(MacroCommandsList[i], Data.first)) {
+            ws::errorln("Error pushing macro list to the \"", Modules[i]->Name, "\" module!");
             return false;
         }
-        if(!Modules[i]->Proccess(Content, Data.first, ErrorOutputStream)) {
-            ErrorOutputStream << "Error proccessing macro list for the \"" << Modules[i]->Name << "\" module\n";
+        if(!Modules[i]->Proccess(Content, Data.first)) {
+            ws::errorln("Error proccessing macro list for the \"", Modules[i]->Name, "\" module");
             return false;
         }
     }
@@ -185,13 +186,21 @@ bool Preprocess(std::pair<std::string, std::string>& Data, std::vector<std::uniq
     }
 
     if(Reprocess) {
-        return Preprocess(Data, Modules, ErrorOutputStream);
+        return Preprocess(Data, Modules);
+    }
+    else {
+        for(auto& Module : Modules) {
+            if(!Module->ClearCommandList(Data.first)) {
+                ws::errorln("Error proccessing macro list for the \"", Module->Name, "\" module");
+                return false;
+            }
+        }
     }
 
     return true;
 }
 
-void WriteFile(const std::vector<std::pair<std::string, std::string>>& DataVector, const std::string& OutputFile)
+void WriteFile(const std::vector<StringPair>& DataVector, const std::string& OutputFile)
 {
     std::fstream Output(OutputFile, std::ios::out | std::ios::binary);
     for(auto &data : DataVector)
