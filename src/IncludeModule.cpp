@@ -4,7 +4,7 @@
 #include <sstream>
 #include <algorithm>
 
-bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream& ErrorOutputStream) {
+bool IncludeModule::PushCommandList(const std::vector<MacroInformation>& Macros, const std::string& FileName, std::ostream&) {
 
     for(auto& Macro : Macros) {
         if(Macro.Type == INCLUDE_MACRO) {
@@ -46,7 +46,7 @@ bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std
 
             StringStream.str("");
             StringStream.clear();
-            
+
             File.close();
 
             IncludedFiles[FileName].emplace_back(Include.File);
@@ -61,7 +61,7 @@ bool IncludeModule::Proccess(std::string& Data, const std::string& FileName, std
 
 }
 
-bool IncludeModule::ClearCommandList(const std::string& FileName, std::ostream& ErrorOutputStream) {
+bool IncludeModule::ClearCommandList(const std::string&, std::ostream&) {
     Includes.clear();
     return true;
 }

@@ -149,8 +149,8 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
 
             for(size_t k = 0; k < MacroModules2.size(); k++) {
                 if(std::find(
-                    MacroModules2[k]->MacroCommands.begin(), 
-                    MacroModules2[k]->MacroCommands.end(), 
+                    MacroModules2[k]->MacroCommands.begin(),
+                    MacroModules2[k]->MacroCommands.end(),
                     Content.substr(i, MacroStart - i - 1))
                     != MacroModules2[k]->MacroCommands.end()
                 ) {
@@ -195,8 +195,8 @@ bool Preprocess(std::ostream& ErrorOutputStream) {
 void WriteFile(const std::string& OutputFile)
 {
     std::fstream Output(OutputFile, std::ios::out | std::ios::binary);
-    for(int i = 0; i < WotScriptFiles.size(); ++i)
+    for(auto &data : WotScriptFiles)
     {
-        Output << WotScriptFiles[i].second;
+        Output << data.second;
     }
 }
