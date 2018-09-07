@@ -23,20 +23,16 @@ using IModulePtr = std::unique_ptr<IModule>;
 
 bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& DataVector);
 bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules);
-void WriteFile(const std::vector<StringPair>& DataVector,const std::string &OutputFile);
 
 
 int main(int argc, char* argv[]) {
     if(argc < 2)
     {
-        std::cerr << "No arguments!\nUsage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
+        std::cerr << "No arguments!" << std::endl;
         return 1;
     }
 
-    std::vector<std::string> Arguments{static_cast<size_t>(argc)};
-    for(int i = 0; i < argc; i++) {
-        Arguments.emplace_back(argv[i]);
-    }
+    std::vector<std::string> Arguments(argv + 1, argv + argc);
 
     std::vector<StringPair>  WotScriptData;
     std::vector<IModulePtr>  MacroModules;
@@ -45,35 +41,15 @@ int main(int argc, char* argv[]) {
     MacroModules.emplace_back(std::make_unique<DefineModule>());
 
     std::vector<std::string> InputFiles;
-    std::string OutputFile;
 
-    for(size_t i = 1; i < Arguments.size(); i++) {
-        if(Arguments[i] == "-i") {
-            if(++i < Arguments.size()) {
-                InputFiles.emplace_back(Arguments[i]);
-            }
-            else {
-                ws::module::errorln("Missing argument after -i");
-                return 1;
-            }
-        }
-        else if(Arguments[i] == "-o") {
-            if(++i < Arguments.size()) {
-                OutputFile = Arguments[i];
-            }
-            else {
-                ws::module::errorln("Missing argument after -o");
-                return 1;
-            }
-        }
-        else if(Arguments[i] == "-h") {
-            std::cout << "Usage: " << argv[0] << " -i <input file> [-i <more input files>] [-o <output file>]\n";
+    for(size_t i = 1; i < Arguments.size(); ++i) {
+        if(Arguments[i] == "-h") {
+            std::cout << "Usage: " << argv[0] << " <input files>\n";
             return 0;
         }
     }
 
-
-    if(!GetFiles(InputFiles,WotScriptData)) {
+    if(!GetFiles(InputFiles, WotScriptData)) {
         std::cerr << "Failed to get wotscript files!\n";
         return 1;
     }
@@ -85,24 +61,17 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if(OutputFile.empty())
-    {
-        for(size_t i = 0; i < WotScriptData.size(); i++) {
-            std::string& Contents = WotScriptData[i].second;
-            for(size_t j = 0; j < Contents.size(); j++) {
-                size_t LineBegin = j;
-                j = Contents.find('\n', j);
-                if(j == std::string::npos) {
-                    continue;
-                }
-                ws::module::pipeln(Contents.substr(LineBegin, j - LineBegin));
-            }
-        }
-    }
-    else
-    {
-        WriteFile(WotScriptData, OutputFile);
-    }
+	for(size_t i = 0; i < WotScriptData.size(); i++) {
+		std::string& Contents = WotScriptData[i].second;
+		for(size_t j = 0; j < Contents.size(); j++) {
+			size_t LineBegin = j;
+			j = Contents.find('\n', j);
+			if(j == std::string::npos) {
+				continue;
+			}
+			ws::module::pipeln(Contents.substr(LineBegin, j - LineBegin));
+		}
+	}
     return 0;
 }
 
@@ -198,13 +167,4 @@ bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules) {
     }
 
     return true;
-}
-
-void WriteFile(const std::vector<StringPair>& DataVector, const std::string& OutputFile)
-{
-    std::fstream Output(OutputFile, std::ios::out | std::ios::binary);
-    for(auto &data : DataVector)
-    {
-        Output << data.second;
-    }
 }
