@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
                 InputFiles.emplace_back(Arguments[i]);
             }
             else {
-                ws::errorln("Missing argument after -i");
+                ws::module::errorln("Missing argument after -i");
                 return 1;
             }
         }
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
                 OutputFile = Arguments[i];
             }
             else {
-                ws::errorln("Missing argument after -o");
+                ws::module::errorln("Missing argument after -o");
                 return 1;
             }
         }
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
                 if(j == std::string::npos) {
                     continue;
                 }
-                ws::pipeln(Contents.substr(LineBegin, j - LineBegin));
+                ws::module::pipeln(Contents.substr(LineBegin, j - LineBegin));
             }
         }
     }
@@ -113,7 +113,7 @@ bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& Da
     for(auto &Path : Files) {
         File.open(Path);
         if(!File.is_open()) {
-            ws::errorln("Could not open file: \"", Path, "\"!");
+            ws::module::errorln("Could not open file: \"", Path, "\"!");
             return false;
         }
         FileInput << File.rdbuf();
@@ -145,7 +145,7 @@ bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules) {
         size_t MacroLength = MacroEnd - MacroStart;
 
         if(MacroStart == std::string::npos || MacroEnd == std::string::npos) {
-            ws::errorln("Expected a macro value at index:", i, " in: \"", Data.first, "\"!");
+            ws::module::errorln("Expected a macro value at index:", i, " in: \"", Data.first, "\"!");
             return false;
         }
 
@@ -171,11 +171,11 @@ bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules) {
 
     for(size_t i = 0; i < Modules.size(); i++) {
         if(!Modules[i]->PushCommandList(MacroCommandsList[i], Data.first)) {
-            ws::errorln("Error pushing macro list to the \"", Modules[i]->Name, "\" module!");
+            ws::module::errorln("Error pushing macro list to the \"", Modules[i]->Name, "\" module!");
             return false;
         }
         if(!Modules[i]->Proccess(Content, Data.first)) {
-            ws::errorln("Error proccessing macro list for the \"", Modules[i]->Name, "\" module");
+            ws::module::errorln("Error proccessing macro list for the \"", Modules[i]->Name, "\" module");
             return false;
         }
     }
@@ -191,7 +191,7 @@ bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules) {
     else {
         for(auto& Module : Modules) {
             if(!Module->ClearCommandList(Data.first)) {
-                ws::errorln("Error proccessing macro list for the \"", Module->Name, "\" module");
+                ws::module::errorln("Error proccessing macro list for the \"", Module->Name, "\" module");
                 return false;
             }
         }
