@@ -32,22 +32,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::vector<std::string> Arguments(argv + 1, argv + argc);
-
     std::vector<StringPair>  WotScriptData;
     std::vector<IModulePtr>  MacroModules;
 
     MacroModules.emplace_back(std::make_unique<IncludeModule>());
     MacroModules.emplace_back(std::make_unique<DefineModule>());
 
-    std::vector<std::string> InputFiles;
-
-    for(size_t i = 1; i < Arguments.size(); ++i) {
-        if(Arguments[i] == "-h") {
-            std::cout << "Usage: " << argv[0] << " <input files>\n";
-            return 0;
-        }
-    }
+	std::vector<std::string> InputFiles(argv + 1, argv + argc);
 
     if(!GetFiles(InputFiles, WotScriptData)) {
         std::cerr << "Failed to get wotscript files!\n";
