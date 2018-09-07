@@ -32,7 +32,7 @@ bool IncludeModule::Proccess(std::string& Data, const std::string& FileName) {
             }
             File.open(AbsoluteFileName);
             if(!File.is_open()) {
-                ws::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
+                ws::module::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
                 return false;
             }
             StringStream << File.rdbuf();
