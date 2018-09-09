@@ -1,5 +1,5 @@
 # Wotscript Scanner and Preprocessor
-[![pipeline status](https://gitlab.com/kiroma/WotScript-scanner-preproccessor/badges/master/pipeline.svg)](https://gitlab.com/kiroma/WotScript-scanner-preproccessor/commits/master)
+[![pipeline status](https://gitlab.com/WotScript/WotScript-scanner-preproccessor/badges/master/pipeline.svg)](https://gitlab.com/WotScript/WotScript-scanner-preproccessor/commits/master)
 ## Details
 * Language C/C++
 
