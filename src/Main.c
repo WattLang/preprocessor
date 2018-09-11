@@ -9,8 +9,8 @@
 #define PIPE_OUTPUT_STREAM stdout
 
 static const char* PreprocessData(lua_State* L, const char* Name, const char* Data);
-static int lua_StringErase(lua_State* L);
-static int lua_StringInsert(lua_State* L);
+static int lua_StringSpaceReplace(lua_State* L);
+static int lua_StringInsertFormat(lua_State* L);
 
 void* memshift(void* src, size_t byteoffset, size_t size, int direction) {
 	if (direction > 0) {
@@ -65,10 +65,10 @@ int main (int argc, char* argv[]) {
 
     lua_State *L = luaL_newstate();   /* opens Lua */
     luaL_openlibs(L);
-    lua_pushcfunction(L, lua_StringErase);
-    lua_setglobal(L, "StringErase");
-    lua_pushcfunction(L, lua_StringInsert);
-    lua_setglobal(L, "StringInsert");
+    lua_pushcfunction(L, lua_StringSpaceReplace);
+    lua_setglobal(L, "StringSpaceReplace");
+    lua_pushcfunction(L, lua_StringInsertFormat);
+    lua_setglobal(L, "StringInsertFormat");
 
     luaL_dofile(L, "script.lua");
 
@@ -120,11 +120,11 @@ static const char* PreprocessData(lua_State* L, const char* Name, const char* Da
     return rstr;
 }
 
-static int lua_StringErase(lua_State* L) {
+static int lua_StringSpaceReplace(lua_State* L) {
 
     const char* str = lua_tostring(L, 1);
-    size_t Index1 = lua_tonumber(L, 2);
-    size_t Index2 = lua_tonumber(L, 3);
+    size_t Index1 = lua_tonumber(L,   2);
+    size_t Index2 = lua_tonumber(L,   3);
 
     memset((void*)((size_t)str + Index1 - 1), ' ', Index2 - Index1 + 1);
 
@@ -133,22 +133,14 @@ static int lua_StringErase(lua_State* L) {
     return 1;
 }
 
-static int lua_StringInsert(lua_State* L) {
+static int lua_StringInsertFormat(lua_State* L) {
+    char* MainString = (char*)lua_tostring(L, 1);
+    size_t Index     = lua_tonumber(L, 2);
 
-    const char* MainString = lua_tostring(L, 1);
-    const char* Insertee   = lua_tostring(L, 2);
-    size_t Index           = lua_tonumber(L, 3);
 
-    size_t MainStrLen     = strlen(MainString) + 1;
-    size_t InserteeStrLen = strlen(Insertee)   + 1;
+    MainString[Index - 1] = '%';
+    MainString[Index    ] = 's';
 
-    fprintf(PIPE_OUTPUT_STREAM, "Inserting: %s\n into %s\n at index %zu\n", Insertee, MainString, Index);
-
-    MainString = realloc((void*)MainString, MainStrLen + InserteeStrLen - 1);
-
-    memshift((void*)MainString + Index, 1, MainStrLen - Index, 1);
-
-    memcpy((void*)((size_t)MainString + Index - 1), Insertee, InserteeStrLen - 1);
 
     lua_pushstring(L, MainString);
 

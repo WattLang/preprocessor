@@ -24,14 +24,16 @@ function PreprocessData(strName, strData)
 
     print("Processing file: \"" .. strName .. "\"")
 
+    strWorkingData = strData;
+
     local nDataLength = string.len(strData)
     local nLastIndex  = 1
 
     while nLastIndex do
         
-        local nStart, _ = string.find(strData, MacroIdentifier, nLastIndex)
-        local nValue, _ = string.find(strData, MacroStart,      nLastIndex)
-        local nEnd  , _ = string.find(strData, MacroEnd,        nLastIndex)
+        local nStart, _ = string.find(strWorkingData, MacroIdentifier, nLastIndex)
+        local nValue, _ = string.find(strWorkingData, MacroStart,      nLastIndex)
+        local nEnd  , _ = string.find(strWorkingData, MacroEnd,        nLastIndex)
 
         print(tostring(nStart) .. " " ..tostring(nValue) .. " " .. tostring(nEnd))
 
@@ -43,12 +45,12 @@ function PreprocessData(strName, strData)
             nLastIndex = nEnd + 1
         end
 
-        print(string.sub(strData, nStart + 1, nValue - 1) .. " " .. string.sub(strData, nValue + 1, nEnd - 1))
+        print(string.sub(strWorkingData, nStart + 1, nValue - 1) .. " " .. string.sub(strWorkingData, nValue + 1, nEnd - 1))
 
-        local strMacroType  = string.sub(strData, nStart + 1, nValue - 1)
-        local strMacroValue = string.sub(strData, nValue + 1, nEnd   - 1)
+        local strMacroType  = string.sub(strWorkingData, nStart + 1, nValue - 1)
+        local strMacroValue = string.sub(strWorkingData, nValue + 1, nEnd   - 1)
 
-        StringErase(strData, nStart, nEnd)
+        StringSpaceReplace(strWorkingData, nStart, nEnd)
 
         if strMacroType == DefineMacro then
             local nDefineSeperator = string.find(strMacroValue, DefineMacroValueSeperator)
@@ -80,7 +82,8 @@ function PreprocessData(strName, strData)
             local strFileContents = f:read("*all")
             f:close()
 
-            StringInsert(strData, strFileContents, nStart)
+            StringInsertFormat(strWorkingData, nStart)
+            strWorkingData = string.format(strWorkingData, strFileContents)
 
 
         elseif strMacroType == ForceIncludeMacro then
@@ -101,5 +104,5 @@ function PreprocessData(strName, strData)
     end
     
 
-    return strData
+    return strWorkingData
 end
