@@ -80,6 +80,8 @@ function PreprocessData(strName, strData)
             local strFileContents = f:read("*all")
             f:close()
 
+            StringInsert(strData, strFileContents, nStart)
+
 
         elseif strMacroType == ForceIncludeMacro then
             local strFileName = nil

@@ -10,6 +10,19 @@
 
 static const char* PreprocessData(lua_State* L, const char* Name, const char* Data);
 static int lua_StringErase(lua_State* L);
+static int lua_StringInsert(lua_State* L);
+
+void* memshift(void* src, size_t byteoffset, size_t size, int direction) {
+	if (direction > 0) {
+		return memmove((void*)((size_t)src + byteoffset), src, size);
+	}
+	else if(direction < 0) {
+		return memmove((void*)((size_t)src - byteoffset), src, size);
+	}
+	else {
+		return NULL;
+	}
+}
 
 int main (int argc, char* argv[]) {
 
@@ -54,6 +67,8 @@ int main (int argc, char* argv[]) {
     luaL_openlibs(L);
     lua_pushcfunction(L, lua_StringErase);
     lua_setglobal(L, "StringErase");
+    lua_pushcfunction(L, lua_StringInsert);
+    lua_setglobal(L, "StringInsert");
 
     luaL_dofile(L, "script.lua");
 
@@ -114,6 +129,28 @@ static int lua_StringErase(lua_State* L) {
     memset((void*)((size_t)str + Index1 - 1), ' ', Index2 - Index1 + 1);
 
     lua_pushstring(L, str);
+
+    return 1;
+}
+
+static int lua_StringInsert(lua_State* L) {
+
+    const char* MainString = lua_tostring(L, 1);
+    const char* Insertee   = lua_tostring(L, 2);
+    size_t Index           = lua_tonumber(L, 3);
+
+    size_t MainStrLen     = strlen(MainString) + 1;
+    size_t InserteeStrLen = strlen(Insertee)   + 1;
+
+    fprintf(PIPE_OUTPUT_STREAM, "Inserting: %s\n into %s\n at index %zu\n", Insertee, MainString, Index);
+
+    MainString = realloc((void*)MainString, MainStrLen + InserteeStrLen - 1);
+
+    memshift((void*)MainString + Index, 1, MainStrLen - Index, 1);
+
+    memcpy((void*)((size_t)MainString + Index - 1), Insertee, InserteeStrLen - 1);
+
+    lua_pushstring(L, MainString);
 
     return 1;
 }
