@@ -1,7 +1,7 @@
 # Wotscript Scanner and Preprocessor
 [![pipeline status](https://gitlab.com/WotScript/WotScript-scanner-preproccessor/badges/master/pipeline.svg)](https://gitlab.com/WotScript/WotScript-scanner-preproccessor/commits/master)
 ## Details
-* Language C/C++
+* Language C/Lua
 
 ## Goals
 * Ability to read a file and pass it through the WotScipt pipeline
