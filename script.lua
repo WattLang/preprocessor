@@ -8,13 +8,21 @@ IncludeMacro      = "include"
 ForceIncludeMacro = "force_include"
 
 DefineMacroValueSeperator         = ':'
-IncludeMacroAbsolutePathIndicator = "/"
+IncludeMacroAbsolutePathIndicator = '/'
 
 Defines   = {}
 Undefines = {}
 Includes  = {}
 
-function PreprocessData(strData)
+function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+end
+
+function PreprocessData(strName, strData)
+
+    print("Processing file: \"" .. strName .. "\"")
 
     local nDataLength = string.len(strData)
     local nLastIndex  = 1
@@ -38,7 +46,9 @@ function PreprocessData(strData)
         print(string.sub(strData, nStart + 1, nValue - 1) .. " " .. string.sub(strData, nValue + 1, nEnd - 1))
 
         local strMacroType  = string.sub(strData, nStart + 1, nValue - 1)
-        local strMacroValue = string.sub(strData, nValue + 1, nEnd - 1)
+        local strMacroValue = string.sub(strData, nValue + 1, nEnd   - 1)
+
+        StringErase(strData, nStart, nEnd)
 
         if strMacroType == DefineMacro then
             local nDefineSeperator = string.find(strMacroValue, DefineMacroValueSeperator)
@@ -50,18 +60,37 @@ function PreprocessData(strData)
                 nLastIndex = nil
                 break
             end
+
+
         elseif strMacroType == IncludeMacro then
-            if strMacroValue[1] == IncludeMacroAbsolutePathIndicator then 
-                print("Including absolute file: ")
+            local strFileName = nil
+            if string.byte(strMacroValue) == string.byte(IncludeMacroAbsolutePathIndicator) then 
+                strFileName = string.sub(strMacroValue, 2)
+                print("Including absolute file: " .. strFileName)
             else
-                print("Including relative file: ")
+                local nLastPathID = string.find(strName, "/.-$", 1)
+                strFileName = string.sub(strName, 1, nLastPathID) .. strMacroValue
+                print("Including relative file: " .. strFileName)
             end
+
+
+            Includes[tablelength(Includes)] = strFileName
+
+            local f = assert(io.open(strFileName, "r"))
+            local strFileContents = f:read("*all")
+            f:close()
+
+
         elseif strMacroType == ForceIncludeMacro then
-            if strMacroValue[1] == IncludeMacroAbsolutePathIndicator then 
-                print("Force including absolute file: ")
+            local strFileName = nil
+            if string.byte(strMacroValue) == string.byte(IncludeMacroAbsolutePathIndicator) then 
+                print("Force including absolute file: " .. strMacroValue)
             else
-                print("Force including relative file: ")
+                print("Force including relative file: " .. strMacroValue)
             end
+
+
+
         end
 
 

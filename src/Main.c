@@ -8,16 +8,17 @@
 #define ERROR_OUTPUT_STREAM stderr
 #define PIPE_OUTPUT_STREAM stdout
 
-void* malloc(size_t);
-
-const char* PreprocessData(lua_State* L, const char* File);
+static const char* PreprocessData(lua_State* L, const char* Name, const char* Data);
+static int lua_StringErase(lua_State* L);
 
 int main (int argc, char* argv[]) {
 
     char**  Files     = NULL;
+    char**  FileNames = NULL;
     size_t* FileSizes = NULL;
     size_t  FileCount = argc - 1;
     if(argc > 1) {
+        FileNames = malloc(sizeof(char*)  * (argc - 1));
         Files     = malloc(sizeof(char*)  * (argc - 1));
         FileSizes = malloc(sizeof(size_t) * (argc - 1));
     }
@@ -28,7 +29,16 @@ int main (int argc, char* argv[]) {
 
     FILE* F = NULL;
     for(int i = 1; i < argc; i++) {
+
+        FileNames[i - 1] = malloc(strlen(argv[i]) + 1);
+        FileNames[i - 1][strlen(FileNames[i - 1])] = '\0';
+        strcpy(FileNames[i - 1], argv[i]);
+
         F = fopen(argv[i], "r");
+        if(F == NULL) {
+            fprintf(ERROR_OUTPUT_STREAM, "Error: Failed to open file: \"%s\"!\n", FileNames[i - 1]);
+            goto ErrorReturn;
+        }
         fseek(F, 0, SEEK_END);
         FileSizes[i - 1] = ftell(F);
         fseek(F, 0, SEEK_SET);
@@ -42,32 +52,48 @@ int main (int argc, char* argv[]) {
 
     lua_State *L = luaL_newstate();   /* opens Lua */
     luaL_openlibs(L);
+    lua_pushcfunction(L, lua_StringErase);
+    lua_setglobal(L, "StringErase");
 
     luaL_dofile(L, "script.lua");
 
     for(size_t i = 0; i < FileCount; i++) {
-        //fprintf(PIPE_OUTPUT_STREAM, "Ouput:\n%s\n",PreprocessData(L, Files[i]));
-        PreprocessData(L, Files[i]);
+        fprintf(PIPE_OUTPUT_STREAM, "Ouput:\n%s\n", PreprocessData(L, FileNames[i],  Files[i]));
+        //PreprocessData(L, FileNames[i],  Files[i]);
     }
 
     lua_close(L);
 
     for(size_t i = 0; i < FileCount; i++) {
         free(Files[i]);
+        free(FileNames[i]);
     }
     free(Files);
     free(FileSizes);
+    free(FileNames);
 
     return 0;
+
+ErrorReturn:
+    for(size_t i = 0; i < FileCount; i++) {
+        free(Files[i]);
+        free(FileNames[i]);
+    }
+    free(Files);
+    free(FileSizes);
+    free(FileNames);
+
+    return -1;
 }
 
-const char* PreprocessData(lua_State* L, const char* Data) {
+static const char* PreprocessData(lua_State* L, const char* Name, const char* Data) {
     const char* rstr = NULL;
 
     lua_getglobal(L, "PreprocessData");
+    lua_pushstring(L, Name);
     lua_pushstring(L, Data);
 
-    if(lua_pcall(L, 1, 1, 0)) {
+    if(lua_pcall(L, 2, 1, 0)) {
         fprintf(ERROR_OUTPUT_STREAM, "Error: Failed to execute \"PreprocessData\" function from lua!\n");
     }
     if(!lua_isstring(L, -1)) {
@@ -77,4 +103,17 @@ const char* PreprocessData(lua_State* L, const char* Data) {
     lua_pop(L, 1);
 
     return rstr;
+}
+
+static int lua_StringErase(lua_State* L) {
+
+    const char* str = lua_tostring(L, 1);
+    size_t Index1 = lua_tonumber(L, 2);
+    size_t Index2 = lua_tonumber(L, 3);
+
+    memset((void*)((size_t)str + Index1 - 1), ' ', Index2 - Index1 + 1);
+
+    lua_pushstring(L, str);
+
+    return 1;
 }
