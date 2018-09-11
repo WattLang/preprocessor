@@ -46,7 +46,8 @@ int main (int argc, char* argv[]) {
     luaL_dofile(L, "script.lua");
 
     for(size_t i = 0; i < FileCount; i++) {
-        fprintf(PIPE_OUTPUT_STREAM, "Ouput: %s\n",PreprocessData(L, Files[i]));
+        //fprintf(PIPE_OUTPUT_STREAM, "Ouput:\n%s\n",PreprocessData(L, Files[i]));
+        PreprocessData(L, Files[i]);
     }
 
     lua_close(L);
