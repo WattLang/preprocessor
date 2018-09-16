@@ -5,3 +5,4 @@ that tests defines
 and also un defines it
 
 @include[IncludeTest.ws]
+@include[IndexTest.ws]
