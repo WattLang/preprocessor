@@ -150,13 +150,19 @@ function PreprocessData(strName, strData)
             else
                 nLastIndex = nCurrentIndex + 1
             end
-            if not Undefines[k] then
-                strWorkingData = string.gsub(strWorkingData, k, v[1], 1)
-                print("Replaced " .. k .. " with " .. v[1])
-            elseif nCurrentIndex < Undefines[k] then
-                strWorkingData = string.gsub(strWorkingData, k, v[1], 1)
-                print("Replaced " .. k .. " with " .. v[1])
-            end
+            strWorkingData = string.gsub(strWorkingData, k, function(d) 
+                if not Undefines[k] then
+                    if nCurrentIndex > v[2] then
+                        return v[1]
+                    end
+                elseif nCurrentIndex < Undefines[k] then 
+                    if nCurrentIndex > v[2] then
+                        return v[1]
+                    end
+                else
+                    return d
+                end
+            end, 1)
         end
 
     end
