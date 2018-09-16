@@ -131,9 +131,6 @@ function PreprocessData(strName, strData)
             strWorkingData = string.format(strWorkingData, strFileContents)
         end
 
-
-
-
     end
 
     print("Start define processing")
@@ -163,9 +160,11 @@ function PreprocessData(strName, strData)
         end
 
     end
-
-
     
 
     return strWorkingData
+end
+
+function PrintLines(str)
+    for line in string.gmatch(str,'[^\r\n]+') do print(line) end
 end

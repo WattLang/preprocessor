@@ -9,6 +9,7 @@
 #define PIPE_OUTPUT_STREAM stdout
 
 static const char* PreprocessData(lua_State* L, const char* Name, const char* Data);
+static void        PrintLines(lua_State* L, const char* String);
 static int lua_StringSpaceReplace(lua_State* L);
 static int lua_StringInsertFormat(lua_State* L);
 
@@ -72,9 +73,10 @@ int main (int argc, char* argv[]) {
 
     luaL_dofile(L, "script.lua");
 
+
     for(size_t i = 0; i < FileCount; i++) {
-        fprintf(PIPE_OUTPUT_STREAM, "Ouput:\n%s\n", PreprocessData(L, FileNames[i],  Files[i]));
-        //PreprocessData(L, FileNames[i],  Files[i]);
+        //fprintf(PIPE_OUTPUT_STREAM, "Ouput:\n%s\n", PreprocessData(L, FileNames[i],  Files[i]));
+        PrintLines(L, PreprocessData(L, FileNames[i],  Files[i]));
     }
 
     lua_close(L);
@@ -118,6 +120,15 @@ static const char* PreprocessData(lua_State* L, const char* Name, const char* Da
     lua_pop(L, 1);
 
     return rstr;
+}
+
+static void PrintLines(lua_State* L, const char* String) {
+    lua_getglobal(L, "PrintLines");
+    lua_pushstring(L, String);
+
+    if(lua_pcall(L, 1, 0, 0)) {
+        fprintf(ERROR_OUTPUT_STREAM, "Error: Failed to execute \"PrintLines\" function from lua!\n");
+    }
 }
 
 static int lua_StringSpaceReplace(lua_State* L) {
