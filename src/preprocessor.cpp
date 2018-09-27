@@ -129,7 +129,7 @@ bool Preprocess(StringPair& Data) {
                     return false;
                 }
                 StringStream << File.rdbuf();
-                Content.insert(i, StringStream.str());
+                Content.insert(i - 1, StringStream.str());
 
                 StringStream.str("");
                 StringStream.clear();
@@ -161,7 +161,7 @@ bool Preprocess(StringPair& Data) {
                 return false;
             }
             StringStream << File.rdbuf();
-            Content.insert(i, StringStream.str());
+            Content.insert(i - 1, StringStream.str());
 
             StringStream.str("");
             StringStream.clear();
