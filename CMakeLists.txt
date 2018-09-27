@@ -5,9 +5,7 @@ option(BUILD_TESTING "Should Test targets be generated?" OFF)
 include(CTest)
 
 add_executable(${CMAKE_PROJECT_NAME}
-src/preprocessor.cpp
-src/DefineModule.cpp
-src/IncludeModule.cpp)
+src/preprocessor.cpp)
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 17)

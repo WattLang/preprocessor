@@ -7,12 +7,18 @@
 #include <sstream>
 #include <algorithm>
 #include <cstring>
+#include <tuple>
 
 #include "module.h"
 
 constexpr auto MACRO_IDENTIFIER = "@";
 constexpr auto MACRO_START      = "[";
 constexpr auto MACRO_END        = "]";
+
+constexpr auto INCLUDE_MACRO       = "include";
+constexpr auto FORCE_INCLUDE_MACRO = "force_include";
+constexpr auto DEFINE_MACRO        = "define";
+constexpr auto UNDEFINE_MACRO      = "undefine";
 
 using StringPair = std::pair<std::string, std::string>;
 
@@ -76,11 +82,12 @@ bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& Da
 bool Preprocess(StringPair& Data) {
 
     std::vector<std::string> IncludedFiles;
+    std::vector<std::tuple<std::string, std::string>> Defines; // Replaces, Value
     std::ifstream File;
     std::stringstream StringStream;
 
     std::string& Content = Data.second;
-    for(size_t i = 0; i < Content.size();) {
+    for(size_t i = 0; i < Content.size();) { // Scans for macros and completes include macros
 
         i = Content.find(MACRO_IDENTIFIER, i);                     //Find where a macro is delcared using @
         if(i == std::string::npos) {
@@ -98,13 +105,12 @@ bool Preprocess(StringPair& Data) {
             return false;
         }
 
-
         std::string MacroType  = Content.substr(i, MacroStart - i - 1);          // The type of macro it is, include, define, etc.
         std::string MacroValue = Content.substr(MacroStart, MacroLength);        // The value of the macro, what's in between the []
         std::fill(Content.begin() + i - 1, Content.begin() + MacroEnd + 1, ' '); // Repace the macro declaration with spaces
 
 
-        if(MacroType == "include") {
+        if(MacroType == INCLUDE_MACRO) {
             if(std::find(IncludedFiles.begin(), IncludedFiles.end(), MacroValue) == IncludedFiles.end()) {  // Check to see if file is already included
                 //TODO: ADD INCLUDE MACRO LOGIC
 
@@ -134,7 +140,7 @@ bool Preprocess(StringPair& Data) {
                 ws::module::warnln("File: \"", MacroValue, "\" already included in \"", Data.first, "\"");
             }
         }
-        else if(MacroType == "force_include") {
+        else if(MacroType == FORCE_INCLUDE_MACRO) {
             if(std::find(IncludedFiles.begin(), IncludedFiles.end(), MacroValue) == IncludedFiles.end()) {  // Check to see if file is already included
                 IncludedFiles.emplace_back(MacroValue);
             } else {
@@ -162,17 +168,52 @@ bool Preprocess(StringPair& Data) {
 
             File.close();
         }
-        else if(MacroType == "define") {
-            
-        }
-        else if(MacroType == "undefine") {
+        else if(MacroType == DEFINE_MACRO) {
 
+            size_t SeperatorIndex = MacroValue.find(':');
+            if(SeperatorIndex == std::string::npos) {
+                ws::module::errorln("Expected \':\' in define definition! ", MacroType, " : ", MacroValue);
+                return false;
+            }
+
+            std::string DefineName  = MacroValue.substr(0, SeperatorIndex);
+            std::string DefineValue = MacroValue.substr(   SeperatorIndex + 1);
+
+            for(auto& Define : Defines) { // Check to see if already defined
+                if(std::get<0>(Define) == DefineName) {
+                    ws::module::errorln("Define: \"", DefineName, "\" already defined!");
+                    return false;
+                }
+            }
+
+            Defines.emplace_back(DefineName, DefineValue);
+        }
+        else if(MacroType == UNDEFINE_MACRO) {
+            for(size_t i = 0; i < Defines.size(); i++) {
+                ws::module::noticeln(std::get<0>(Defines[i]), "   ", MacroValue);
+                if(std::get<0>(Defines[i]) == MacroValue) {
+                    Defines.erase(Defines.begin() + i);
+                }
+            }
         }
         else {
             ws::module::errorln("Macro: \"", MacroType, "\" does not exist!");
         }
 
-        i = 0;  // Sets i to 0 to hopefully fix some bugs
+        for(auto& Define : Defines) { // Scan for defines and replace them before the next macro
+            size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
+            size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
+            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) {
+                NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);
+            }
+            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) {
+                NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\r'), i);
+            }
+            if(NextDefineIndex < NextMacro && std::string::npos) {
+                Content.replace(Content.begin() + NextDefineIndex + 1, Content.begin() + NextDefineIndex + std::get<0>(Define).size() + 1, std::get<1>(Define));
+            }
+        }
+
     }
 
 
