@@ -6,7 +6,6 @@
 #include <memory>
 #include <sstream>
 #include <algorithm>
-#include <cstring>
 #include <tuple>
 
 #include "module.h"
@@ -24,6 +23,7 @@ using StringPair = std::pair<std::string, std::string>;
 
 bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& DataVector);
 bool Preprocess(StringPair& Data);
+bool IncludeFile(const std::string& Includer, const std::string& Filepath, std::string& Data, size_t Index); 
 
 
 int main(int argc, char* argv[]) {
@@ -112,29 +112,7 @@ bool Preprocess(StringPair& Data) {
 
         if(MacroType == INCLUDE_MACRO) {
             if(std::find(IncludedFiles.begin(), IncludedFiles.end(), MacroValue) == IncludedFiles.end()) {  // Check to see if file is already included
-                //TODO: ADD INCLUDE MACRO LOGIC
-
-                std::string AbsoluteFileName;
-                if(MacroValue[0] == '/') {
-                    AbsoluteFileName = MacroValue;
-                    AbsoluteFileName.erase(0, 1);    // Removes the '/'
-                }
-                else {
-                    size_t Folder = Data.first.rfind('/');
-                    AbsoluteFileName = Data.first.substr(0, Folder + 1).append(MacroValue);
-                }
-                File.open(AbsoluteFileName);
-                if(!File.is_open()) {
-                    ws::module::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
-                    return false;
-                }
-                StringStream << File.rdbuf();
-                Content.insert(i - 1, StringStream.str());
-
-                StringStream.str("");
-                StringStream.clear();
-
-                File.close();
+                IncludeFile(Data.first, MacroValue, Content, i);
                 IncludedFiles.emplace_back(MacroValue);
             } else {
                 ws::module::warnln("File: \"", MacroValue, "\" already included in \"", Data.first, "\"");
@@ -146,27 +124,7 @@ bool Preprocess(StringPair& Data) {
             } else {
                 ws::module::warnln("File: \"", MacroValue, "\" already included in \"", Data.first, "\" force including may cause problems and is not advised!");
             }
-            std::string AbsoluteFileName;
-            if(MacroValue[0] == '/') {
-                AbsoluteFileName = MacroValue;
-                AbsoluteFileName.erase(0, 1);    // Removes the '/'
-            }
-            else {
-                size_t Folder = Data.first.rfind('/');
-                AbsoluteFileName = Data.first.substr(0, Folder + 1).append(MacroValue);
-            }
-            File.open(AbsoluteFileName);
-            if(!File.is_open()) {
-                ws::module::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
-                return false;
-            }
-            StringStream << File.rdbuf();
-            Content.insert(i - 1, StringStream.str());
-
-            StringStream.str("");
-            StringStream.clear();
-
-            File.close();
+            IncludeFile(Data.first, MacroValue, Content, i);
         }
         else if(MacroType == DEFINE_MACRO) {
 
@@ -203,10 +161,10 @@ bool Preprocess(StringPair& Data) {
         for(auto& Define : Defines) { // Scan for defines and replace them before the next macro
             size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
             size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
-            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) {
+            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
                 NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);
             }
-            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) {
+            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
                 NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\r'), i);
             }
             if(NextDefineIndex < NextMacro && std::string::npos) {
@@ -216,6 +174,34 @@ bool Preprocess(StringPair& Data) {
 
     }
 
+
+    return true;
+}
+
+bool IncludeFile(const std::string& Includer, const std::string& Filepath, std::string& Data, size_t Index) {
+    std::ifstream File;
+    std::stringstream StringStream;
+    std::string AbsoluteFileName;
+    if(Filepath[0] == '/') {
+        AbsoluteFileName = Filepath;
+        AbsoluteFileName.erase(0, 1);    // Removes the '/'
+    }
+    else {
+        size_t Folder    = Includer.rfind('/');
+        AbsoluteFileName = Includer.substr(0, Folder + 1).append(Filepath);
+    }
+    File.open(AbsoluteFileName);
+    if(!File.is_open()) {
+        ws::module::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
+        return false;
+    }
+    StringStream << File.rdbuf();
+    Data.insert(Index - 1, StringStream.str());
+
+    StringStream.str("");
+    StringStream.clear();
+
+    File.close();
 
     return true;
 }
