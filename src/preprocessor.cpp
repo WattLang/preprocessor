@@ -2,27 +2,28 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <algorithm>
-#include <cstring>
+#include <tuple>
 
 #include "module.h"
-
-#include "IModule.hpp"
-#include "DefineModule.hpp"
-#include "IncludeModule.hpp"
 
 constexpr auto MACRO_IDENTIFIER = "@";
 constexpr auto MACRO_START      = "[";
 constexpr auto MACRO_END        = "]";
 
+constexpr auto INCLUDE_MACRO       = "include";
+constexpr auto FORCE_INCLUDE_MACRO = "force_include";
+constexpr auto DEFINE_MACRO        = "define";
+constexpr auto UNDEFINE_MACRO      = "undefine";
+
 using StringPair = std::pair<std::string, std::string>;
-using IModulePtr = std::unique_ptr<IModule>;
 
 bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& DataVector);
-bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules);
+bool Preprocess(StringPair& Data);
+bool IncludeFile(const std::string& Includer, const std::string& Filepath, std::string& Data, size_t Index); 
 
 
 int main(int argc, char* argv[]) {
@@ -33,10 +34,6 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<StringPair>  WotScriptData;
-    std::vector<IModulePtr>  MacroModules;
-
-    MacroModules.emplace_back(std::make_unique<IncludeModule>());
-    MacroModules.emplace_back(std::make_unique<DefineModule>());
 
 	std::vector<std::string> InputFiles(argv + 1, argv + argc);
 
@@ -46,7 +43,7 @@ int main(int argc, char* argv[]) {
     }
 
     for(auto& Data : WotScriptData) {
-        if(!Preprocess(Data, MacroModules)) {
+        if(!Preprocess(Data)) {
             std::cerr << "Failed to preprocess: \"" << Data.first << "\"!\n";
             return 2;
         }
@@ -82,80 +79,129 @@ bool GetFiles(const std::vector<std::string> &Files, std::vector<StringPair>& Da
     return true;
 }
 
-bool Preprocess(StringPair& Data, std::vector<IModulePtr>& Modules) {
+bool Preprocess(StringPair& Data) {
 
-    bool Reprocess = false;
-
-    std::unordered_map<std::string, std::vector<MacroInformation>> Macros;
-
-    std::vector<std::vector<MacroInformation>> MacroCommandsList(Modules.size());
+    std::vector<std::string> IncludedFiles;
+    std::vector<std::tuple<std::string, std::string>> Defines; // Replaces, Value
+    std::ifstream File;
+    std::stringstream StringStream;
 
     std::string& Content = Data.second;
-    for(size_t i = 0; i < Content.size();) {
+    for(size_t i = 0; i < Content.size();) { // Scans for macros and completes include macros
 
-        i = Content.find(MACRO_IDENTIFIER, i);
+        i = Content.find(MACRO_IDENTIFIER, i);                     //Find where a macro is delcared using @
         if(i == std::string::npos) {
             continue;
         }
         i++;
 
-        size_t MacroStart  = Content.find(MACRO_START, i);
-        size_t MacroEnd    = Content.find(MACRO_END, MacroStart);
+        size_t MacroStart  = Content.find(MACRO_START, i);         //Find the [ right after the declaration
+        size_t MacroEnd    = Content.find(MACRO_END, MacroStart);  //Find the ] right after the [
         MacroStart++;
         size_t MacroLength = MacroEnd - MacroStart;
 
-        if(MacroStart == std::string::npos || MacroEnd == std::string::npos) {
+        if(MacroStart == std::string::npos || MacroEnd == std::string::npos) { //Check to see if macro declaration has a value
             ws::module::errorln("Expected a macro value at index:", i, " in: \"", Data.first, "\"!");
             return false;
         }
 
-        for(size_t j = 0; j < Modules.size(); j++) {
-            if(std::find(
-                Modules[j]->MacroCommands.begin(),
-                Modules[j]->MacroCommands.end(),
-                Content.substr(i, MacroStart - i - 1))
-                != Modules[j]->MacroCommands.end()
-            ) {
+        std::string MacroType  = Content.substr(i, MacroStart - i - 1);          // The type of macro it is, include, define, etc.
+        std::string MacroValue = Content.substr(MacroStart, MacroLength);        // The value of the macro, what's in between the []
+        std::fill(Content.begin() + i - 1, Content.begin() + MacroEnd + 1, ' '); // Repace the macro declaration with spaces
 
-                MacroCommandsList[j].emplace_back(
-                    Content.substr(i, MacroStart - i - 1),
-                    Content.substr(MacroStart, MacroLength),
-                    (i - 2)
-                );
 
-                Content.erase(i - 1, (MacroEnd - i) + 2);
-                i = 0;
+        if(MacroType == INCLUDE_MACRO) {
+            if(std::find(IncludedFiles.begin(), IncludedFiles.end(), MacroValue) == IncludedFiles.end()) {  // Check to see if file is already included
+                IncludeFile(Data.first, MacroValue, Content, i);
+                IncludedFiles.emplace_back(MacroValue);
+            } else {
+                ws::module::warnln("File: \"", MacroValue, "\" already included in \"", Data.first, "\"");
             }
         }
-    }
-
-    for(size_t i = 0; i < Modules.size(); i++) {
-        if(!Modules[i]->PushCommandList(MacroCommandsList[i], Data.first)) {
-            ws::module::errorln("Error pushing macro list to the \"", Modules[i]->Name, "\" module!");
-            return false;
+        else if(MacroType == FORCE_INCLUDE_MACRO) {
+            if(std::find(IncludedFiles.begin(), IncludedFiles.end(), MacroValue) == IncludedFiles.end()) {  // Check to see if file is already included
+                IncludedFiles.emplace_back(MacroValue);
+            } else {
+                ws::module::warnln("File: \"", MacroValue, "\" already included in \"", Data.first, "\" force including may cause problems and is not advised!");
+            }
+            IncludeFile(Data.first, MacroValue, Content, i);
         }
-        if(!Modules[i]->Proccess(Content, Data.first)) {
-            ws::module::errorln("Error proccessing macro list for the \"", Modules[i]->Name, "\" module");
-            return false;
-        }
-    }
+        else if(MacroType == DEFINE_MACRO) {
 
-    size_t TestForMoreMacros = Content.find(MACRO_IDENTIFIER);
-    if(TestForMoreMacros != std::string::npos) {
-        Reprocess = true;
-    }
-
-    if(Reprocess) {
-        return Preprocess(Data, Modules);
-    }
-    else {
-        for(auto& Module : Modules) {
-            if(!Module->ClearCommandList(Data.first)) {
-                ws::module::errorln("Error proccessing macro list for the \"", Module->Name, "\" module");
+            size_t SeperatorIndex = MacroValue.find(':');
+            if(SeperatorIndex == std::string::npos) {
+                ws::module::errorln("Expected \':\' in define definition! ", MacroType, " : ", MacroValue);
                 return false;
             }
+
+            std::string DefineName  = MacroValue.substr(0, SeperatorIndex);
+            std::string DefineValue = MacroValue.substr(   SeperatorIndex + 1);
+
+            for(auto& Define : Defines) { // Check to see if already defined
+                if(std::get<0>(Define) == DefineName) {
+                    ws::module::errorln("Define: \"", DefineName, "\" already defined!");
+                    return false;
+                }
+            }
+
+            Defines.emplace_back(DefineName, DefineValue);
         }
+        else if(MacroType == UNDEFINE_MACRO) {
+            for(size_t i = 0; i < Defines.size(); i++) {
+                ws::module::noticeln(std::get<0>(Defines[i]), "   ", MacroValue);
+                if(std::get<0>(Defines[i]) == MacroValue) {
+                    Defines.erase(Defines.begin() + i);
+                }
+            }
+        }
+        else {
+            ws::module::errorln("Macro: \"", MacroType, "\" does not exist!");
+        }
+
+        for(auto& Define : Defines) { // Scan for defines and replace them before the next macro
+            size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
+            size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
+            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
+                NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);
+            }
+            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
+                NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\r'), i);
+            }
+            if(NextDefineIndex < NextMacro && std::string::npos) {
+                Content.replace(Content.begin() + NextDefineIndex + 1, Content.begin() + NextDefineIndex + std::get<0>(Define).size() + 1, std::get<1>(Define));
+            }
+        }
+
     }
+
+
+    return true;
+}
+
+bool IncludeFile(const std::string& Includer, const std::string& Filepath, std::string& Data, size_t Index) {
+    std::ifstream File;
+    std::stringstream StringStream;
+    std::string AbsoluteFileName;
+    if(Filepath[0] == '/') {
+        AbsoluteFileName = Filepath;
+        AbsoluteFileName.erase(0, 1);    // Removes the '/'
+    }
+    else {
+        size_t Folder    = Includer.rfind('/');
+        AbsoluteFileName = Includer.substr(0, Folder + 1).append(Filepath);
+    }
+    File.open(AbsoluteFileName);
+    if(!File.is_open()) {
+        ws::module::errorln("Failed to open file: \"", AbsoluteFileName, "\"!");
+        return false;
+    }
+    StringStream << File.rdbuf();
+    Data.insert(Index - 1, StringStream.str());
+
+    StringStream.str("");
+    StringStream.clear();
+
+    File.close();
 
     return true;
 }
