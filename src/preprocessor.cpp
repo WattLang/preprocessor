@@ -159,16 +159,21 @@ bool Preprocess(StringPair& Data) {
         }
 
         for(auto& Define : Defines) { // Scan for defines and replace them before the next macro
-            size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
-            size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
-            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
-                NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);
-            }
-            if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
-                NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\r'), i);
-            }
-            if(NextDefineIndex < NextMacro && std::string::npos) {
-                Content.replace(Content.begin() + NextDefineIndex + 1, Content.begin() + NextDefineIndex + std::get<0>(Define).size() + 1, std::get<1>(Define));
+            for(;;) {
+                size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
+                size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
+                if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
+                    NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);
+                }
+                if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
+                    NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\r'), i);
+                }
+                if(NextDefineIndex < NextMacro && std::string::npos) {
+                    Content.replace(Content.begin() + NextDefineIndex + 1, Content.begin() + NextDefineIndex + std::get<0>(Define).size() + 1, std::get<1>(Define));
+                }
+                else {
+                    break;
+                }
             }
         }
 
