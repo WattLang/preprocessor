@@ -148,7 +148,7 @@ bool Preprocess(StringPair& Data) {
         }
         else if(MacroType == UNDEFINE_MACRO) {
             for(size_t i = 0; i < Defines.size(); i++) {
-                ws::module::noticeln(std::get<0>(Defines[i]), "   ", MacroValue);
+                //ws::module::noticeln(std::get<0>(Defines[i]), "   ", MacroValue);
                 if(std::get<0>(Defines[i]) == MacroValue) {
                     Defines.erase(Defines.begin() + i);
                 }
