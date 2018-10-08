@@ -51,13 +51,14 @@ int main(int argc, char* argv[]) {
 
 	for(size_t i = 0; i < WotScriptData.size(); i++) {
 		std::string& Contents = WotScriptData[i].second;
-		for(size_t j = 0; j < Contents.size(); j++) {
+		for(size_t j = 0; j < Contents.size();) {
 			size_t LineBegin = j;
 			j = Contents.find('\n', j);
 			if(j == std::string::npos) {
 				continue;
 			}
 			ws::module::pipeln(Contents.substr(LineBegin, j - LineBegin));
+			j++;
 		}
 	}
     return 0;
