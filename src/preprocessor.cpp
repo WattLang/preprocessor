@@ -116,10 +116,6 @@ bool Preprocess(StringPair& Data) {
             ws::module::errorln("Failed to find nested macro!");
             return false;
         }
-        if(PassedClosings!=PassedOpenings){
-            ws::module::errorln("Failed to find nested macro!");
-            return false;
-        }
         MacroStart++;
         size_t MacroLength = MacroEnd - MacroStart;
 
