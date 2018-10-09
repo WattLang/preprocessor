@@ -87,6 +87,7 @@ bool Preprocess(StringPair& Data) {
     std::ifstream File;
     std::stringstream StringStream;
 
+
     std::string& Content = Data.second;
     for(size_t i = 0; i < Content.size();) { // Scans for macros and completes include macros
 
@@ -98,10 +99,10 @@ bool Preprocess(StringPair& Data) {
 
         size_t MacroStart  = Content.find(MACRO_START, i);         //Find the [ right after the declaration
         size_t MacroEnd    = Content.find(MACRO_END, MacroStart);  //Find the ] right after the [
-        size_t PassedOpenings = std::count(Content.begin() + MacroStart, Content.begin() + MacroEnd, MACRO_START);
+        size_t PassedOpenings = std::count(Content.begin() + MacroStart + 1, Content.begin() + MacroEnd, MACRO_START);
         size_t PassedClosings;
         for(PassedClosings = PassedOpenings; PassedClosings >= 1; PassedClosings--) {
-            MacroEnd = Content.find(MACRO_START, MacroEnd + 1);
+            MacroEnd = Content.find(MACRO_END, MacroEnd + 1);
             if(MacroEnd == std::string::npos) {
                 ws::module::errorln("Expeceted a closing statement!");
                 break;
@@ -174,7 +175,7 @@ bool Preprocess(StringPair& Data) {
 
         for(auto& Define : Defines) { // Scan for defines and replace them before the next macro
             for(;;) {
-                size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
+                size_t NextMacro       = Content.find(MACRO_IDENTIFIER, i);
                 size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
                 if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
                     NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);
