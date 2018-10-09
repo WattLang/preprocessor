@@ -1,4 +1,5 @@
-Is64bit = false
+Is64bit  = false
+UseClang = true
 
 workspace "WotScript"
     language "C++"
@@ -38,9 +39,9 @@ workspace "WotScript"
         objdir ("build32/obj/%{prj.name}/%{cfg.longname}")
     end
 
-    if os.execute("clang -v") == 0 then
+    if UseClang then
         toolset "clang"
-     end
+    end
 
 project "Scanner-Preprocessor"
 
