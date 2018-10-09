@@ -10,9 +10,9 @@
 
 #include "module.h"
 
-constexpr auto MACRO_IDENTIFIER = "@";
-constexpr auto MACRO_START      = "[";
-constexpr auto MACRO_END        = "]";
+constexpr auto MACRO_IDENTIFIER = '@';
+constexpr auto MACRO_START      = '[';
+constexpr auto MACRO_END        = ']';
 
 constexpr auto INCLUDE_MACRO       = "include";
 constexpr auto FORCE_INCLUDE_MACRO = "force_include";
@@ -87,6 +87,7 @@ bool Preprocess(StringPair& Data) {
     std::ifstream File;
     std::stringstream StringStream;
 
+
     std::string& Content = Data.second;
     for(size_t i = 0; i < Content.size();) { // Scans for macros and completes include macros
 
@@ -98,6 +99,23 @@ bool Preprocess(StringPair& Data) {
 
         size_t MacroStart  = Content.find(MACRO_START, i);         //Find the [ right after the declaration
         size_t MacroEnd    = Content.find(MACRO_END, MacroStart);  //Find the ] right after the [
+        size_t PassedOpenings = std::count(Content.begin() + MacroStart + 1, Content.begin() + MacroEnd, MACRO_START);
+        size_t PassedClosings;
+        for(PassedClosings = 0; PassedClosings < PassedOpenings; PassedClosings++) {
+            volatile size_t Opening = Content.find(MACRO_START, MacroEnd + 1);
+            MacroEnd = Content.find(MACRO_END, MacroEnd + 1);
+            if(MacroEnd == std::string::npos) {
+                ws::module::errorln("Expeceted a closing statement!");
+                break;
+            }
+            if(Opening < MacroEnd) {
+                PassedOpenings++;
+            }
+        }
+        if(PassedClosings!=PassedOpenings){
+            ws::module::errorln("Failed to find nested macro!");
+            return false;
+        }
         MacroStart++;
         size_t MacroLength = MacroEnd - MacroStart;
 
@@ -161,7 +179,7 @@ bool Preprocess(StringPair& Data) {
 
         for(auto& Define : Defines) { // Scan for defines and replace them before the next macro
             for(;;) {
-                size_t NextMacro       = Content.find(MACRO_IDENTIFIER);
+                size_t NextMacro       = Content.find(MACRO_IDENTIFIER, i);
                 size_t NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + ' '), i);
                 if(NextDefineIndex == std::string::npos || NextDefineIndex >= NextMacro) { // Tries to find a define that is before the next macro
                     NextDefineIndex = Content.find(std::string( ' ' + std::get<0>(Define) + '\n'), i);

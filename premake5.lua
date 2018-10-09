@@ -1,57 +1,56 @@
-Is64bit = false
+Is64bit  = false
+UseClang = true
 
 workspace "WotScript"
     language "C++"
     cppdialect "C++17"
 
-    location "build"
-    if(Is64bit) then
-        location "build64"
-    else 
-        location "build32"
-    end
-
-    if(Is64bit) then
-            architecture "x86_64"
-    else
-            architecture "x86"
-    end
-
     configurations { "Debug", "Release" }
 
     filter { "configurations:Debug" }
-            symbols "On"
-            optimize "Off"
-
+        optimize "Off"
+        symbols "On"
     filter { "configurations:Release" }
-            optimize "On"
-            symbols "Off"
+        optimize "On"
+        symbols "Off"
     filter { }
 
-    if(Is64bit) then
+    if Is64bit then
+
+        location "build64"
+
+        architecture "x86_64"
+
         targetdir ("build64/bin/%{prj.name}/%{cfg.longname}")
 
         objdir ("build64/obj/%{prj.name}/%{cfg.longname}")
     else 
+
+        location "build32"
+
+        architecture "x86"
+
         targetdir ("build32/bin/%{prj.name}/%{cfg.longname}")
 
         objdir ("build32/obj/%{prj.name}/%{cfg.longname}")
     end
 
-    if os.execute("clang -v") == 0 then
+    if UseClang then
         toolset "clang"
-     end
+    end
 
 project "Scanner-Preprocessor"
 
     kind "ConsoleApp"
 
-    files { "src/**.hpp", "src/**.cpp", "src/**.inl", "src/**.h", "src/**.c"  }
+    files { "src/**.hpp", "src/**.cpp" }
 
     includedirs "./lib/module"
 
     filter "configurations:Debug"
-            defines { "DEBUG" }
+        defines { "DEBUG" }
 
     filter "configurations:Release"
-            defines { "NDEBUG" }
+        defines { "NDEBUG" }
+        
+    filter { }
