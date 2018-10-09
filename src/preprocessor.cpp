@@ -102,17 +102,19 @@ bool Preprocess(StringPair& Data) {
         size_t PassedOpenings = std::count(Content.begin() + MacroStart + 1, Content.begin() + MacroEnd, MACRO_START);
         size_t PassedClosings;
         for(PassedClosings = 0; PassedClosings < PassedOpenings; PassedClosings++) {
+            volatile size_t Opening = Content.find(MACRO_START, MacroEnd + 1);
             MacroEnd = Content.find(MACRO_END, MacroEnd + 1);
             if(MacroEnd == std::string::npos) {
                 ws::module::errorln("Expeceted a closing statement!");
                 break;
             }
-            size_t Opening = Content.find(MACRO_START, MacroEnd + 1);
-            if(Opening == std::string::npos) {
-                if(Opening < MacroEnd) {
-                    PassedOpenings++;
-                }
+            if(Opening < MacroEnd) {
+                PassedOpenings++;
             }
+        }
+        if(PassedClosings!=PassedOpenings){
+            ws::module::errorln("Failed to find nested macro!");
+            return false;
         }
         if(PassedClosings!=PassedOpenings){
             ws::module::errorln("Failed to find nested macro!");
