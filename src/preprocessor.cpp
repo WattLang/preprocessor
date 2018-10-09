@@ -10,9 +10,9 @@
 
 #include "module.h"
 
-constexpr auto MACRO_IDENTIFIER = "@";
-constexpr auto MACRO_START      = "[";
-constexpr auto MACRO_END        = "]";
+constexpr auto MACRO_IDENTIFIER = '@';
+constexpr auto MACRO_START      = '[';
+constexpr auto MACRO_END        = ']';
 
 constexpr auto INCLUDE_MACRO       = "include";
 constexpr auto FORCE_INCLUDE_MACRO = "force_include";
@@ -98,6 +98,19 @@ bool Preprocess(StringPair& Data) {
 
         size_t MacroStart  = Content.find(MACRO_START, i);         //Find the [ right after the declaration
         size_t MacroEnd    = Content.find(MACRO_END, MacroStart);  //Find the ] right after the [
+        size_t PassedOpenings = std::count(Content.begin() + MacroStart, Content.begin() + MacroEnd, MACRO_START);
+        size_t PassedClosings;
+        for(PassedClosings = PassedOpenings; PassedClosings >= 1; PassedClosings--) {
+            MacroEnd = Content.find(MACRO_START, MacroEnd + 1);
+            if(MacroEnd == std::string::npos) {
+                ws::module::errorln("Expeceted a closing statement!");
+                break;
+            }
+        }
+        if(PassedClosings!=0){
+            ws::module::errorln("Failed to find nested macro!");
+            return false;
+        }
         MacroStart++;
         size_t MacroLength = MacroEnd - MacroStart;
 
