@@ -17,6 +17,7 @@ constexpr auto MACRO_END        = ']';
 constexpr auto INCLUDE_MACRO       = "include";
 constexpr auto FORCE_INCLUDE_MACRO = "force_include";
 constexpr auto DEFINE_MACRO        = "define";
+constexpr auto REDEFINE_MACRO      = "redefine";
 constexpr auto UNDEFINE_MACRO      = "undefine";
 
 using StringPair = std::pair<std::string, std::string>;
@@ -165,9 +166,29 @@ bool Preprocess(StringPair& Data) {
 
             Defines.emplace_back(DefineName, DefineValue);
         }
+        else if(MacroType == REDEFINE_MACRO) {
+            size_t SeperatorIndex = MacroValue.find(':');
+            if(SeperatorIndex == std::string::npos) {
+                ws::module::errorln("Expected \':\' in redefine definition! ", MacroType, " : ", MacroValue);
+                return false;
+            }
+
+            std::string DefineName  = MacroValue.substr(0, SeperatorIndex);
+            std::string DefineValue = MacroValue.substr(   SeperatorIndex + 1);
+
+            bool Redefined = false;
+            for(auto& Define : Defines) { // Check to see if already defined
+                if(std::get<0>(Define) == DefineName) {
+                    std::get<1>(Define) = DefineValue;
+                    Redefined = true;
+                }
+            }
+            if(!Redefined){
+                ws::module::warnln("Define: \"", DefineName, "\" is not defined, thus it cannot be redefined!");
+            }
+        }
         else if(MacroType == UNDEFINE_MACRO) {
             for(size_t i = 0; i < Defines.size(); i++) {
-                //ws::module::noticeln(std::get<0>(Defines[i]), "   ", MacroValue);
                 if(std::get<0>(Defines[i]) == MacroValue) {
                     Defines.erase(Defines.begin() + i);
                 }
@@ -195,9 +216,7 @@ bool Preprocess(StringPair& Data) {
                 }
             }
         }
-
     }
-
 
     return true;
 }
